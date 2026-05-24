@@ -1,0 +1,11 @@
+{
+  "name": "self-service-portal",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "npm --prefix self-service-portal run dev",
+    "build": "npm --prefix self-service-portal run build",
+    "lint": "npm --prefix self-service-portal run lint",
+    "preview": "npm --prefix self-service-portal run preview"
+  }
+}
