@@ -11,9 +11,9 @@ export function MainContent() {
   }, [location.pathname])
 
   return (
-    <div className="portal-main-bg relative min-h-0 flex-1 overflow-hidden">
+    <div className="portal-main-bg relative flex min-h-0 flex-1 flex-col overflow-hidden">
       <AmbientLayer />
-      <div ref={scrollRef} className="portal-scrollbar-light relative z-10 h-full overflow-y-auto overflow-x-hidden">
+      <div ref={scrollRef} className="portal-scrollbar-light relative z-10 min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
         <div key={location.pathname} className="animate-page-in">
           <Outlet />
         </div>
