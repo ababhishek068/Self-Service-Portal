@@ -3,8 +3,10 @@ import { cn } from '@/lib/utils'
 
 export const Table = React.forwardRef<HTMLTableElement, React.HTMLAttributes<HTMLTableElement>>(
   ({ className, ...props }, ref) => (
-    <div className="portal-table-wrap w-full overflow-auto">
-      <table ref={ref} className={cn('w-full border-collapse text-sm', className)} {...props} />
+    <div className="portal-table-wrap w-full">
+      <div className="portal-table-scroll portal-scrollbar-light w-full">
+        <table ref={ref} className={cn('w-full border-collapse text-sm', className)} {...props} />
+      </div>
     </div>
   ),
 )
@@ -40,7 +42,10 @@ export const TableHead = React.forwardRef<HTMLTableCellElement, React.ThHTMLAttr
   ({ className, ...props }, ref) => (
     <th
       ref={ref}
-      className={cn('border border-slate-400 px-3 py-2.5 text-left align-middle text-sm font-bold text-white', className)}
+      className={cn(
+        'border border-slate-400 px-2.5 py-2 text-left align-middle text-xs font-bold text-white sm:px-3 sm:py-2.5 sm:text-sm',
+        className,
+      )}
       {...props}
     />
   ),
@@ -49,7 +54,14 @@ TableHead.displayName = 'TableHead'
 
 export const TableCell = React.forwardRef<HTMLTableCellElement, React.TdHTMLAttributes<HTMLTableCellElement>>(
   ({ className, ...props }, ref) => (
-    <td ref={ref} className={cn('border border-slate-200 px-3 py-2 align-middle text-slate-800', className)} {...props} />
+    <td
+      ref={ref}
+      className={cn(
+        'border border-slate-200 px-2.5 py-2 align-middle text-xs text-slate-800 sm:px-3 sm:text-sm',
+        className,
+      )}
+      {...props}
+    />
   ),
 )
 TableCell.displayName = 'TableCell'

@@ -1,14 +1,18 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { ChevronDown, Menu, X } from 'lucide-react'
-import { navigationMenu, type NavItem } from '@/utils/constants'
+import { ChevronDown, X } from 'lucide-react'
+import { type NavItem } from '@/utils/constants'
 import { Button } from '@/components/ui/button'
+import { useAuth } from '@/hooks/useAuth'
+import { useLayout } from '@/context/LayoutContext'
+import { handleUnderConstructionClick, useNavigation } from '@/hooks/useNavigation'
 import { cn } from '@/lib/utils'
 
 function MobileNavGroup({ item, onNavigate }: { item: NavItem; onNavigate: () => void }) {
   const location = useLocation()
   const hasActive = item.children?.some((c) => c.path && location.pathname.startsWith(c.path)) ?? false
   const [open, setOpen] = useState(hasActive)
+  const Icon = item.icon
 
   useEffect(() => {
     if (hasActive) setOpen(true)
@@ -21,10 +25,11 @@ function MobileNavGroup({ item, onNavigate }: { item: NavItem; onNavigate: () =>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between px-4 py-2.5 text-sm font-medium text-white"
+        className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-[15px] font-medium text-white active:bg-white/10"
       >
-        {item.label}
-        <ChevronDown className="chevron-rotate h-4 w-4" data-open={open ? 'true' : 'false'} />
+        <Icon className="h-4 w-4 shrink-0 opacity-90" />
+        <span className="flex-1">{item.label}</span>
+        <ChevronDown className="chevron-rotate h-4 w-4 opacity-80" data-open={open ? 'true' : 'false'} />
       </button>
       <div className="nav-submenu-grid bg-[var(--portal-navy-panel)]" data-open={open ? 'true' : 'false'}>
         <div className="nav-submenu-inner pb-1">
@@ -33,17 +38,29 @@ function MobileNavGroup({ item, onNavigate }: { item: NavItem; onNavigate: () =>
               <NavLink
                 key={child.path}
                 to={child.path}
-                onClick={onNavigate}
+                onClick={(event) => {
+                  if (child.underConstruction) {
+                    handleUnderConstructionClick(event)
+                    return
+                  }
+                  onNavigate()
+                }}
                 className={({ isActive }) =>
                   cn(
-                    'block px-6 py-2 text-sm text-white/95 transition-colors duration-200',
-                    isActive
+                    'flex items-center gap-2 px-12 py-2.5 text-sm text-white/95 transition-colors duration-200',
+                    isActive && !child.underConstruction
                       ? 'bg-gradient-to-r from-[var(--portal-orange)] to-[#f97316] font-medium shadow-[0_0_16px_var(--portal-glow-orange)]'
-                      : 'hover:bg-white/10',
+                      : 'active:bg-white/10',
+                    child.underConstruction && 'opacity-75',
                   )
                 }
               >
-                {child.label}
+                <span className="flex-1">{child.label}</span>
+                {child.underConstruction ? (
+                  <span className="rounded-full bg-white/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/80">
+                    Soon
+                  </span>
+                ) : null}
               </NavLink>
             ) : null,
           )}
@@ -54,69 +71,108 @@ function MobileNavGroup({ item, onNavigate }: { item: NavItem; onNavigate: () =>
 }
 
 export function MobileNav() {
-  const [open, setOpen] = useState(false)
-  const navRef = useRef<HTMLDivElement>(null)
+  const { mobileNavOpen, closeMobileNav } = useLayout()
+  const { employee } = useAuth()
   const location = useLocation()
+  const drawerRef = useRef<HTMLDivElement>(null)
+  const menu = useNavigation()
 
   useEffect(() => {
-    setOpen(false)
-  }, [location.pathname])
+    closeMobileNav()
+  }, [location.pathname, closeMobileNav])
 
   useEffect(() => {
-    if (!open) return
+    if (!mobileNavOpen) return
     const onKey = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false)
+      if (event.key === 'Escape') closeMobileNav()
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [open])
+  }, [mobileNavOpen, closeMobileNav])
 
-  const close = () => setOpen(false)
+  const displayName = employee?.displayName ?? 'User'
 
   return (
-    <div className="portal-sidebar-bg shrink-0 border-b border-white/10 lg:hidden">
-      <div className="flex items-center justify-between px-3 py-2">
-        <span className="text-sm font-semibold text-white">Navigation</span>
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="text-white transition-transform duration-200 hover:bg-white/10 active:scale-95"
-          onClick={() => setOpen((v) => !v)}
-          aria-expanded={open}
-        >
-          {open ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </Button>
-      </div>
+    <div className={cn('fixed inset-0 z-50 lg:hidden', mobileNavOpen ? 'pointer-events-auto' : 'pointer-events-none')}>
+      <div
+        aria-hidden
+        onClick={closeMobileNav}
+        className={cn(
+          'absolute inset-0 bg-slate-950/55 backdrop-blur-sm transition-opacity duration-300',
+          mobileNavOpen ? 'opacity-100' : 'opacity-0',
+        )}
+      />
 
-      <div className="nav-submenu-grid border-t border-white/10" data-open={open ? 'true' : 'false'}>
-        <div ref={navRef} className="nav-submenu-inner portal-scrollbar max-h-[min(70vh,32rem)] overflow-y-auto">
-          <nav className="pb-2">
-            {navigationMenu.map((item) =>
-              item.path ? (
-                <NavLink
-                  key={item.path}
-                  to={item.path}
-                  end={item.path === '/'}
-                  onClick={close}
-                  className={({ isActive }) =>
-                    cn(
-                      'block px-4 py-2.5 text-sm text-white transition-colors duration-200',
-                      isActive
-                      ? 'bg-gradient-to-r from-[var(--portal-orange)] to-[#f97316] font-medium shadow-[0_0_16px_var(--portal-glow-orange)]'
-                      : 'hover:bg-white/10',
-                    )
-                  }
-                >
-                  {item.label}
-                </NavLink>
-              ) : (
-                <MobileNavGroup key={item.label} item={item} onNavigate={close} />
-              ),
-            )}
-          </nav>
+      <aside
+        ref={drawerRef}
+        role="dialog"
+        aria-modal="true"
+        aria-label="Main navigation"
+        className={cn(
+          'portal-sidebar-bg portal-safe-pt portal-safe-pb absolute inset-y-0 left-0 flex w-[min(86vw,20rem)] flex-col text-white shadow-2xl transition-transform duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
+          mobileNavOpen ? 'translate-x-0' : '-translate-x-full',
+        )}
+      >
+        <div className="portal-sidebar-brand portal-shimmer-bar relative flex items-center justify-between gap-3 px-4 py-3">
+          <div>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/70">Hijra Bank</p>
+            <p className="text-sm font-bold text-white">Self Service Portal</p>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            aria-label="Close navigation"
+            className="h-10 w-10 text-white hover:bg-white/10 active:scale-95"
+            onClick={closeMobileNav}
+          >
+            <X className="h-5 w-5" />
+          </Button>
         </div>
-      </div>
+
+        <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
+          <div className="flex h-10 w-10 items-center justify-center rounded-full bg-gradient-to-br from-[var(--portal-orange)] to-[#f97316] text-sm font-bold text-white shadow-md">
+            {displayName.charAt(0).toUpperCase()}
+          </div>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-semibold text-white">{displayName}</p>
+            <p className="truncate text-xs text-white/60">{employee?.employeeNo ?? 'Signed in'}</p>
+          </div>
+        </div>
+
+        <nav className="portal-scrollbar min-h-0 flex-1 overflow-y-auto overflow-x-hidden py-1">
+          {menu.map((item) =>
+            item.path ? (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.path === '/'}
+                onClick={(event) => {
+                  if (item.underConstruction) {
+                    handleUnderConstructionClick(event)
+                    return
+                  }
+                  closeMobileNav()
+                }}
+                className={({ isActive }) =>
+                  cn(
+                    'flex items-center gap-2.5 border-b border-white/5 px-4 py-3 text-[15px] text-white transition-colors duration-200',
+                    isActive && !item.underConstruction
+                      ? 'bg-gradient-to-r from-[var(--portal-orange)] to-[#f97316] font-medium shadow-[0_0_16px_var(--portal-glow-orange)]'
+                      : 'active:bg-white/10',
+                    item.underConstruction && 'opacity-75',
+                  )
+                }
+              >
+                <item.icon className="h-4 w-4 shrink-0 opacity-90" />
+                <span>{item.label}</span>
+              </NavLink>
+            ) : (
+              <MobileNavGroup key={item.label} item={item} onNavigate={closeMobileNav} />
+            ),
+          )}
+        </nav>
+      </aside>
     </div>
   )
 }

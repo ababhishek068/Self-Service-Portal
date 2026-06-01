@@ -74,18 +74,26 @@ export function DataTable<T>({
       </Table>
 
       {rows.length > pageSize ? (
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-slate-600">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <p className="text-xs text-slate-600 sm:text-sm">
             Page {page} of {pageCount}
           </p>
           <div className="flex gap-2">
-            <Button type="button" variant="outline" size="sm" disabled={page === 1} onClick={() => setPage((value) => value - 1)}>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="flex-1 sm:flex-initial"
+              disabled={page === 1}
+              onClick={() => setPage((value) => value - 1)}
+            >
               Previous
             </Button>
             <Button
               type="button"
               variant="outline"
               size="sm"
+              className="flex-1 sm:flex-initial"
               disabled={page === pageCount}
               onClick={() => setPage((value) => value + 1)}
             >

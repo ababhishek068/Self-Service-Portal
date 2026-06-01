@@ -32,6 +32,8 @@ export const currentEmployee: Employee = {
   leaveBalance: 16,
   responsibleCenter: 'HO-BO',
   permissionDepartments: ['BO'],
+  isCEO: true,
+  isHOD: true,
 }
 
 const checker = {
@@ -277,9 +279,20 @@ export async function mockCreateRequest(module: PortalModuleKey, payload: Payloa
   return delay(request)
 }
 
-export async function mockListApprovals(employeeNo = currentEmployee.employeeNo) {
+/** Approval queue filter — matches the reference ESS routes (open/approved/rejected). */
+export type ApprovalListType = 'pending' | 'approved' | 'rejected'
+
+export async function mockListApprovals(
+  type: ApprovalListType = 'pending',
+  employeeNo = currentEmployee.employeeNo,
+) {
   const rows: ApprovalQueueItem[] = mockRequests
-    .filter((request) => request.status === 'Pending Approval' && request.approverEmployeeNo === employeeNo)
+    .filter((request) => {
+      if (request.approverEmployeeNo !== employeeNo) return false
+      if (type === 'pending') return request.status === 'Pending Approval'
+      if (type === 'approved') return request.status === 'Approved' || request.status === 'Posted'
+      return request.status === 'Rejected'
+    })
     .map((request) => ({
       id: request.id,
       requestNo: request.requestNo,
@@ -330,10 +343,24 @@ export async function mockEmployee() {
 }
 
 export async function mockDashboard() {
+  const isFor = (type: string) => (request: (typeof mockRequests)[number]) => request.requestType === type
+  const myEmpNo = currentEmployee.employeeNo
+  const totalApproved = mockRequests.filter((r) => r.status === 'Approved' || r.status === 'Posted').length
+  const totalRejected = mockRequests.filter((r) => r.status === 'Rejected').length
+
   return delay({
     pendingApprovals: mockRequests.filter(
-      (request) => request.status === 'Pending Approval' && request.approverEmployeeNo === currentEmployee.employeeNo,
+      (request) => request.status === 'Pending Approval' && request.approverEmployeeNo === myEmpNo,
     ).length,
+    approvedDocuments: totalApproved,
+    rejectedDocuments: totalRejected,
+    leaveApplications: mockRequests.filter(isFor('leave')).length,
+    staffClaims: mockRequests.filter(isFor('staffClaim')).length,
+    imprestRequisitions: mockRequests.filter(isFor('imprest')).length,
+    imprestSurrenders: mockRequests.filter(isFor('imprestSurrender')).length,
+    purchaseRequisitions: mockRequests.filter(isFor('purchaseRequisition')).length,
+    storeRequisitions: mockRequests.filter(isFor('storeRequisition')).length,
+    /** kept for backwards compatibility with older callers */
     leaveBalance: currentEmployee.leaveBalance,
     openRequests: mockRequests.filter((request) => ['Draft', 'Pending Approval'].includes(request.status)).length,
     unresolved: mockRequests.filter((request) => ['Rejected', 'Cancelled'].includes(request.status)).length,

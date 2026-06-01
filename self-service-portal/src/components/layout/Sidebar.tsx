@@ -3,6 +3,7 @@ import { NavLink, useLocation } from 'react-router-dom'
 import { ChevronDown } from 'lucide-react'
 import { navigationMenu, type NavItem } from '@/utils/constants'
 import { useLayout } from '@/context/LayoutContext'
+import { handleUnderConstructionClick, useNavigation } from '@/hooks/useNavigation'
 import { cn } from '@/lib/utils'
 
 function isGroupActive(item: NavItem, pathname: string): boolean {
@@ -18,14 +19,16 @@ function NavLeaf({ item, depth = 0 }: { item: NavItem; depth?: number }) {
     <NavLink
       to={item.path}
       end={item.path === '/'}
+      onClick={item.underConstruction ? handleUnderConstructionClick : undefined}
       className={({ isActive }) =>
         cn(
           'group relative flex items-center gap-2.5 py-2.5 text-sm text-white/95 transition-all duration-200',
           depth > 0 ? 'pl-11 pr-4' : 'px-4',
-          isActive
+          isActive && !item.underConstruction
             ? 'portal-nav-active-bar animate-nav-active bg-gradient-to-r from-[var(--portal-orange)] to-[#f97316] font-medium text-white shadow-[inset_3px_0_0_#fff,0_0_24px_var(--portal-glow-orange)]'
             : 'hover:bg-white/10 hover:pl-[calc(1rem+2px)] hover:shadow-[inset_3px_0_0_rgba(255,255,255,0.35)]',
-          depth > 0 && !isActive && 'hover:pl-[calc(2.75rem+2px)]',
+          depth > 0 && 'hover:pl-[calc(2.75rem+2px)]',
+          item.underConstruction && 'opacity-75',
         )
       }
     >
@@ -34,10 +37,17 @@ function NavLeaf({ item, depth = 0 }: { item: NavItem; depth?: number }) {
           <Icon
             className={cn(
               'h-4 w-4 shrink-0 transition-transform duration-200',
-              isActive ? 'scale-110' : 'opacity-85 group-hover:scale-105 group-hover:opacity-100',
+              isActive && !item.underConstruction
+                ? 'scale-110'
+                : 'opacity-85 group-hover:scale-105 group-hover:opacity-100',
             )}
           />
-          <span className="truncate">{item.label}</span>
+          <span className="flex-1 truncate">{item.label}</span>
+          {item.underConstruction ? (
+            <span className="rounded-full bg-white/15 px-1.5 py-0.5 text-[9px] font-semibold uppercase tracking-wide text-white/80">
+              Soon
+            </span>
+          ) : null}
         </>
       )}
     </NavLink>
@@ -84,6 +94,7 @@ export function Sidebar() {
   const { sidebarOpen } = useLayout()
   const location = useLocation()
   const navRef = useRef<HTMLElement>(null)
+  const menu = useNavigation()
 
   useEffect(() => {
     const frame = requestAnimationFrame(() => {
@@ -109,7 +120,7 @@ export function Sidebar() {
         className="portal-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden py-1"
         aria-label="Main navigation"
       >
-        {navigationMenu.map((item, index) => (
+        {menu.map((item, index) => (
           <div
             key={item.label}
             className="animate-sidebar-in"

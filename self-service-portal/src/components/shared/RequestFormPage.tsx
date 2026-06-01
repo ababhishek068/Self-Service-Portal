@@ -221,7 +221,7 @@ export function RequestFormPage({
       <PageWrapper title={title} showPageHeading={false}>
         <PortalFormCard title={title}>
           <form className="space-y-4" onSubmit={(event) => event.preventDefault()}>
-            <div className="grid gap-4 md:grid-cols-2">
+            <div className="grid gap-3 sm:grid-cols-1 sm:gap-4 md:grid-cols-2">
               {fields.map((field) =>
                 field.type === 'lineItems' ? (
                   <LineItemsField key={field.name} field={field} form={form} renderField={renderField} />
@@ -237,15 +237,32 @@ export function RequestFormPage({
                 {mutation.error instanceof Error ? mutation.error.message : 'Request failed'}
               </div>
             ) : null}
-            <div className="flex flex-wrap justify-center gap-2 pt-2">
-              <Button type="button" variant="outline" className="rounded-full" disabled={mutation.isPending} onClick={() => setShowForm(false)}>
+            <div className="grid grid-cols-1 gap-2 pt-2 sm:flex sm:flex-wrap sm:justify-center">
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-full sm:order-1"
+                disabled={mutation.isPending}
+                onClick={() => setShowForm(false)}
+              >
                 Cancel
               </Button>
-              <Button type="button" variant="outline" className="rounded-full" disabled={mutation.isPending} onClick={() => submit(false)}>
+              <Button
+                type="button"
+                variant="outline"
+                className="rounded-full sm:order-2"
+                disabled={mutation.isPending}
+                onClick={() => submit(false)}
+              >
                 <Save className="h-4 w-4" />
                 Save draft
               </Button>
-              <Button type="button" className="rounded-full" disabled={mutation.isPending} onClick={() => submit(true)}>
+              <Button
+                type="button"
+                className="rounded-full sm:order-3"
+                disabled={mutation.isPending}
+                onClick={() => submit(true)}
+              >
                 <Send className="h-4 w-4" />
                 Submit
               </Button>

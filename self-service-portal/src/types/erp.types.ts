@@ -42,6 +42,10 @@ export interface Employee extends BusinessCentralEntity {
   leaveBalance: number
   responsibleCenter: string
   permissionDepartments: string[]
+  /** True when the employee can view the CEO function group (master roll, etc.) */
+  isCEO?: boolean
+  /** True when the employee leads a department (HOD function group). */
+  isHOD?: boolean
 }
 
 export interface Attachment {

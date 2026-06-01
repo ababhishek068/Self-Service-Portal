@@ -1,10 +1,10 @@
 export function Footer() {
   return (
-    <footer className="portal-footer shrink-0">
+    <footer className="portal-footer portal-safe-pb shrink-0">
       <div className="portal-footer-accent" aria-hidden />
-      <div className="px-4 py-3 text-center text-sm text-white">
+      <div className="px-4 py-2 text-center text-xs text-white sm:py-3 sm:text-sm">
         <p>© {new Date().getFullYear()} All rights reserved</p>
-        <p className="mt-1 text-xs text-white/75">Powered by Hijra Bank</p>
+        <p className="mt-0.5 text-[10px] text-white/75 sm:mt-1 sm:text-xs">Powered by Hijra Bank</p>
       </div>
     </footer>
   )

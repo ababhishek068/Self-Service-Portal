@@ -32,12 +32,41 @@
 
 html {
   scroll-behavior: smooth;
+  /* prevent horizontal bleed on small screens */
+  overflow-x: hidden;
+  -webkit-text-size-adjust: 100%;
 }
 
 body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+}
+
+/* iOS safe-area helpers */
+.portal-safe-pt {
+  padding-top: env(safe-area-inset-top, 0);
+}
+
+.portal-safe-pb {
+  padding-bottom: env(safe-area-inset-bottom, 0);
+}
+
+.portal-safe-px {
+  padding-left: env(safe-area-inset-left, 0);
+  padding-right: env(safe-area-inset-right, 0);
+}
+
+/* Make every interactive control feel responsive on touch */
+button,
+a,
+[role='button'],
+input,
+select,
+textarea {
+  touch-action: manipulation;
 }
 
 button,
@@ -381,9 +410,11 @@ textarea {
 .portal-quick-action {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 0.5rem;
   border-radius: 9999px;
-  padding: 0.625rem 1.25rem;
+  padding: 0.75rem 1.25rem;
+  min-height: 44px;
   font-size: 0.875rem;
   font-weight: 600;
   color: #fff;
@@ -436,6 +467,13 @@ textarea {
     0 0 0 3px rgba(0, 51, 102, 0.12),
     0 0 0 1px var(--portal-orange);
   transform: translateY(-1px);
+}
+
+/* Prevent iOS zoom-on-focus by forcing 16px on small screens */
+@media (max-width: 640px) {
+  .portal-input {
+    font-size: 16px;
+  }
 }
 
 .portal-skeleton {
@@ -618,6 +656,7 @@ textarea {
 }
 
 .portal-table-wrap {
+  position: relative;
   border-radius: 0.5rem;
   overflow: hidden;
   border: 1px solid #94a3b8;
@@ -627,6 +666,31 @@ textarea {
 
 .portal-table-wrap:hover {
   box-shadow: 0 8px 28px rgba(0, 51, 102, 0.12);
+}
+
+/* Inner horizontally-scrollable area with momentum + scroll hint */
+.portal-table-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  scroll-snap-type: x proximity;
+}
+
+.portal-table-scroll table {
+  min-width: 32rem;
+}
+
+/* Subtle right-edge fade indicates more columns on mobile */
+@media (max-width: 640px) {
+  .portal-table-wrap::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 24px;
+    pointer-events: none;
+    background: linear-gradient(to left, rgba(255, 255, 255, 0.9), transparent);
+  }
 }
 
 .animate-page-in {

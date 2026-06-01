@@ -1,16 +1,21 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { decideApproval, getApprovalDetail, listPendingApprovals } from '@/api/endpoints/approvals'
+import {
+  decideApproval,
+  getApprovalDetail,
+  listApprovals,
+} from '@/api/endpoints/approvals'
+import type { ApprovalListType } from '@/api/endpoints/_mockStore'
 
-export function useApprovals() {
+export function useApprovals(type: ApprovalListType = 'pending') {
   return useQuery({
-    queryKey: ['approvals', 'pending'],
-    queryFn: listPendingApprovals,
+    queryKey: ['approvals', type],
+    queryFn: () => listApprovals(type),
   })
 }
 
 export function useApprovalDetail(id: string) {
   return useQuery({
-    queryKey: ['approvals', id],
+    queryKey: ['approvals', 'detail', id],
     queryFn: () => getApprovalDetail(id),
     enabled: Boolean(id),
   })

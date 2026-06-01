@@ -8,10 +8,14 @@ import { LayoutProvider } from '@/context/LayoutContext'
 import { useAuth } from '@/hooks/useAuth'
 import { Login } from '@/pages/auth/Login'
 import { ApprovalDetail } from '@/pages/approvals/ApprovalDetail'
+import { ApprovedDocuments } from '@/pages/approvals/ApprovedDocuments'
 import { PendingApprovals } from '@/pages/approvals/PendingApprovals'
+import { RejectedDocuments } from '@/pages/approvals/RejectedDocuments'
 import { ChangePassword } from '@/pages/auth/ChangePassword'
 import { Profile } from '@/pages/auth/Profile'
+import { MasterRoll } from '@/pages/ceo/MasterRoll'
 import { Dashboard } from '@/pages/dashboard/Dashboard'
+import { Documents } from '@/pages/downloads/Documents'
 import { FuelRequest } from '@/pages/facility/FuelRequest'
 import { GatePass } from '@/pages/facility/GatePass'
 import { MaintenanceRequest } from '@/pages/facility/MaintenanceRequest'
@@ -19,12 +23,15 @@ import { PurchaseRequisition } from '@/pages/facility/PurchaseRequisition'
 import { StoreRequisition } from '@/pages/facility/StoreRequisition'
 import { TransferOrder } from '@/pages/facility/TransferOrder'
 import { TransportRequest } from '@/pages/facility/TransportRequest'
+import { VehicleTransfer } from '@/pages/facility/VehicleTransfer'
+import { WorkTickets } from '@/pages/facility/WorkTickets'
 import { ImprestRequest } from '@/pages/finance/ImprestRequest'
 import { ImprestSurrender } from '@/pages/finance/ImprestSurrender'
 import { PettyCash } from '@/pages/finance/PettyCash'
 import { PettyCashReplenishment } from '@/pages/finance/PettyCashReplenishment'
 import { StaffClaim } from '@/pages/finance/StaffClaim'
 import { HodTeamRequests } from '@/pages/hod/HodTeamRequests'
+import { StaffOnLeave } from '@/pages/hod/StaffOnLeave'
 import { Attendance } from '@/pages/hr/Attendance'
 import { DocumentRequisition } from '@/pages/hr/DocumentRequisition'
 import { LeaveRequest } from '@/pages/hr/LeaveRequest'
@@ -51,11 +58,11 @@ function ProtectedLayout() {
           <Sidebar />
           <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
             <Topbar />
-            <MobileNav />
             <MainContent />
           </div>
         </div>
         <Footer />
+        <MobileNav />
       </div>
     </LayoutProvider>
   )
@@ -78,7 +85,9 @@ export default function App() {
         <Route path="facility/transport-request" element={<TransportRequest />} />
         <Route path="facility/maintenance-request" element={<MaintenanceRequest />} />
         <Route path="facility/transfer-order" element={<TransferOrder />} />
+        <Route path="facility/work-tickets" element={<WorkTickets />} />
         <Route path="facility/gate-pass" element={<GatePass />} />
+        <Route path="facility/vehicle-transfer" element={<VehicleTransfer />} />
         <Route path="hr/leave-request" element={<LeaveRequest />} />
         <Route path="hr/leave-statement" element={<LeaveStatement />} />
         <Route path="hr/attendance" element={<Attendance />} />
@@ -90,8 +99,13 @@ export default function App() {
         <Route path="hr/overtime-request" element={<OvertimeRequest />} />
         <Route path="hr/travel-request" element={<TravelRequest />} />
         <Route path="approvals" element={<PendingApprovals />} />
+        <Route path="approvals/approved" element={<ApprovedDocuments />} />
+        <Route path="approvals/rejected" element={<RejectedDocuments />} />
         <Route path="approvals/:id" element={<ApprovalDetail />} />
+        <Route path="ceo/master-roll" element={<MasterRoll />} />
         <Route path="hod/team-requests" element={<HodTeamRequests />} />
+        <Route path="hod/staff-on-leave" element={<StaffOnLeave />} />
+        <Route path="downloads/documents" element={<Documents />} />
         <Route path="profile" element={<Profile />} />
         <Route path="change-password" element={<ChangePassword />} />
         <Route path="reports/store-usage" element={<StoreUsageReport />} />
