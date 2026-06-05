@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
-import { ChevronDown, X } from 'lucide-react'
+import { ChevronDown, LogOut, X } from 'lucide-react'
 import { type NavItem } from '@/config/navigation'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
@@ -72,10 +72,21 @@ function MobileNavGroup({ item, onNavigate }: { item: NavItem; onNavigate: () =>
 
 export function MobileNav() {
   const { mobileNavOpen, closeMobileNav } = useLayout()
-  const { employee } = useAuth()
+  const { employee, logout } = useAuth()
   const location = useLocation()
   const drawerRef = useRef<HTMLDivElement>(null)
   const menu = useNavigation()
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  const handleLogout = async () => {
+    setLoggingOut(true)
+    try {
+      closeMobileNav()
+      await logout()
+    } finally {
+      setLoggingOut(false)
+    }
+  }
 
   useEffect(() => {
     closeMobileNav()
@@ -172,6 +183,18 @@ export function MobileNav() {
             ),
           )}
         </nav>
+
+        <div className="border-t border-white/10 p-3">
+          <button
+            type="button"
+            onClick={handleLogout}
+            disabled={loggingOut}
+            className="flex w-full items-center justify-center gap-2 rounded-lg bg-white/10 px-4 py-3 text-sm font-medium text-white transition-colors duration-200 hover:bg-red-500/90 active:scale-[0.98] disabled:opacity-60"
+          >
+            <LogOut className="h-4 w-4" />
+            {loggingOut ? 'Signing out…' : 'Logout'}
+          </button>
+        </div>
       </aside>
     </div>
   )

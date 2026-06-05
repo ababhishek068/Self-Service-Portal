@@ -1,12 +1,23 @@
-import { Menu, User } from 'lucide-react'
+import { useState } from 'react'
+import { LogOut, Menu, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useLayout } from '@/hooks/useLayout'
 import { useAuth } from '@/hooks/useAuth'
 
 export function Topbar() {
   const { pageTitle, toggleSidebar, sidebarOpen, toggleMobileNav, mobileNavOpen } = useLayout()
-  const { employee } = useAuth()
+  const { employee, logout } = useAuth()
   const displayName = employee?.displayName?.split(' ')[0] ?? 'User'
+  const [loggingOut, setLoggingOut] = useState(false)
+
+  const handleLogout = async () => {
+    setLoggingOut(true)
+    try {
+      await logout()
+    } finally {
+      setLoggingOut(false)
+    }
+  }
 
   return (
     <header className="portal-topbar portal-safe-pt z-30 shrink-0 border-b-2 border-[var(--portal-navy)]">
@@ -62,11 +73,23 @@ export function Topbar() {
           </span>
         </p>
 
-        <div className="hidden items-center gap-2 border-l border-slate-200/80 pl-3 transition-all duration-200 hover:opacity-90 sm:flex">
-          <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-slate-200 to-slate-300 text-[var(--portal-navy)] shadow-inner ring-2 ring-white transition-all duration-300 hover:scale-105 hover:ring-[var(--portal-orange)]/40 hover:shadow-md">
+        <div className="flex items-center gap-2 border-l border-slate-200/80 pl-2 transition-all duration-200 sm:pl-3">
+          <div className="hidden h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-slate-200 to-slate-300 text-[var(--portal-navy)] shadow-inner ring-2 ring-white transition-all duration-300 hover:scale-105 hover:ring-[var(--portal-orange)]/40 hover:shadow-md sm:flex">
             <User className="h-5 w-5" />
           </div>
           <span className="hidden text-sm font-medium text-slate-800 md:inline">{displayName}</span>
+          <Button
+            type="button"
+            variant="ghost"
+            size="sm"
+            onClick={handleLogout}
+            disabled={loggingOut}
+            aria-label="Log out"
+            className="h-9 gap-1.5 text-[var(--portal-navy)] transition-colors duration-200 hover:bg-red-50 hover:text-red-600 active:scale-95"
+          >
+            <LogOut className="h-4 w-4" />
+            <span className="hidden text-sm font-medium md:inline">{loggingOut ? 'Signing out…' : 'Logout'}</span>
+          </Button>
         </div>
       </div>
     </header>
