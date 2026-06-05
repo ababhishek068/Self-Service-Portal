@@ -1,6 +1,6 @@
 import { Menu, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
-import { useLayout } from '@/context/LayoutContext'
+import { useLayout } from '@/hooks/useLayout'
 import { useAuth } from '@/hooks/useAuth'
 
 export function Topbar() {

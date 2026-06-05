@@ -1,5 +1,8 @@
 import { addHours, formatISO } from 'date-fns'
-import { departments, itemMaster, moduleLabels } from '@/utils/constants'
+import { departments } from '@/data/departments'
+import { itemMaster } from '@/data/items'
+import { moduleLabels } from '@/data/moduleLabels'
+import type { ApprovalListType } from '@/types/approval'
 import type {
   ApprovalQueueItem,
   Employee,
@@ -7,6 +10,13 @@ import type {
   PortalRequest,
   RequestStatus,
 } from '@/types/erp.types'
+
+/**
+ * In-memory fake backend used when `VITE_USE_MOCK=true`.
+ *
+ * Mirrors the shape and side-effects of the Laravel ESS API so the React app
+ * can run end-to-end without the real backend during development.
+ */
 
 type Payload = Record<string, unknown>
 
@@ -278,9 +288,6 @@ export async function mockCreateRequest(module: PortalModuleKey, payload: Payloa
   mockRequests = [request, ...mockRequests]
   return delay(request)
 }
-
-/** Approval queue filter — matches the reference ESS routes (open/approved/rejected). */
-export type ApprovalListType = 'pending' | 'approved' | 'rejected'
 
 export async function mockListApprovals(
   type: ApprovalListType = 'pending',

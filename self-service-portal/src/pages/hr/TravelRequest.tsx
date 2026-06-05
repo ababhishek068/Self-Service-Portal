@@ -1,7 +1,7 @@
 import { formatISO } from 'date-fns'
 import { createTravelRequest, listTravelRequests } from '@/api/endpoints/hr'
 import { RequestFormPage } from '@/components/shared/RequestFormPage'
-import { travelRequestSchema, type TravelRequestForm } from '@/types/forms.types'
+import { travelRequestSchema, type TravelRequestForm } from '@/schemas/requestSchemas'
 
 const today = formatISO(new Date(), { representation: 'date' })
 

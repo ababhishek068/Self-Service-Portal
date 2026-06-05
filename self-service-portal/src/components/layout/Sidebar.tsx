@@ -1,8 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { ChevronDown } from 'lucide-react'
-import { navigationMenu, type NavItem } from '@/utils/constants'
-import { useLayout } from '@/context/LayoutContext'
+import { type NavItem } from '@/config/navigation'
+import { useLayout } from '@/hooks/useLayout'
 import { handleUnderConstructionClick, useNavigation } from '@/hooks/useNavigation'
 import { cn } from '@/lib/utils'
 
@@ -134,14 +134,3 @@ export function Sidebar() {
   )
 }
 
-export function getPageTitleForPath(pathname: string): string {
-  for (const item of navigationMenu) {
-    if (item.path === pathname) return item.label
-    for (const child of item.children ?? []) {
-      if (child.path === pathname) return child.label
-    }
-  }
-  if (pathname.startsWith('/approvals/')) return 'Approval Details'
-  if (pathname === '/reports/erp-connector') return 'ERP Connector'
-  return 'Self Service Portal'
-}

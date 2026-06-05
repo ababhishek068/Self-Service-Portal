@@ -1,7 +1,7 @@
 import { formatISO } from 'date-fns'
 import { createOvertimeRequest, listOvertimeRequests } from '@/api/endpoints/hr'
 import { RequestFormPage } from '@/components/shared/RequestFormPage'
-import { overtimeRequestSchema, type OvertimeRequestForm } from '@/types/forms.types'
+import { overtimeRequestSchema, type OvertimeRequestForm } from '@/schemas/requestSchemas'
 
 const today = formatISO(new Date(), { representation: 'date' })
 

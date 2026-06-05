@@ -1,8 +1,8 @@
 import { env } from '@/config/env'
-import { erpEntityPath, erpGet } from '@/api/erpConnector'
-import { essGet } from '@/api/essClient'
+import { erpEntityPath, erpGet } from '@/api/client/erpConnector'
+import { essGet } from '@/api/client/essClient'
 import { fetchCurrentUser } from './auth'
-import { mockDashboard, mockEmployee, mockItems, mockReportRows } from './_mockStore'
+import { mockDashboard, mockEmployee, mockItems, mockReportRows } from '@/api/mock/mockStore'
 import type { Employee, ODataCollection } from '@/types/erp.types'
 
 export const getCurrentEmployee = async () => {

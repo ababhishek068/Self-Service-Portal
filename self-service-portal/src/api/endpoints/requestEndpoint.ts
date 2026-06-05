@@ -1,6 +1,6 @@
 import { env } from '@/config/env'
-import { erpEntityPath, erpGet, erpPost, type ODataParams } from '@/api/erpConnector'
-import { mockCreateRequest, mockGetRequest, mockListRequests } from './_mockStore'
+import { erpEntityPath, erpGet, erpPost, type ODataParams } from '@/api/client/erpConnector'
+import { mockCreateRequest, mockGetRequest, mockListRequests } from '@/api/mock/mockStore'
 import type { PortalModuleKey, PortalRequest, ODataCollection } from '@/types/erp.types'
 
 export interface EndpointConfig {

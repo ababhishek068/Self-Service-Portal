@@ -1,5 +1,5 @@
 import { createModuleRequest, listModuleRequests } from './requestEndpoint'
-import type { TransportRequestForm } from '@/types/forms.types'
+import type { TransportRequestForm } from '@/schemas/requestSchemas'
 
 const transportConfig = { module: 'transport', entity: 'selfServiceTransportRequests' } as const
 

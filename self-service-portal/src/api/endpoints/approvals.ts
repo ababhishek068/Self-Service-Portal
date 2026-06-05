@@ -1,6 +1,7 @@
 import { env } from '@/config/env'
-import { essGet, essPost } from '@/api/essClient'
-import { mockDecideApproval, mockGetRequest, mockListApprovals, type ApprovalListType } from './_mockStore'
+import { essGet, essPost } from '@/api/client/essClient'
+import { mockDecideApproval, mockGetRequest, mockListApprovals } from '@/api/mock/mockStore'
+import type { ApprovalListType } from '@/types/approval'
 import type { ApprovalQueueItem, PortalRequest, RequestStatus } from '@/types/erp.types'
 
 /**

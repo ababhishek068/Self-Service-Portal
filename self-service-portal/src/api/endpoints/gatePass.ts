@@ -1,5 +1,5 @@
 import { createModuleRequest, listModuleRequests } from './requestEndpoint'
-import type { GatePassForm } from '@/types/forms.types'
+import type { GatePassForm } from '@/schemas/requestSchemas'
 
 const gatePassConfig = { module: 'gatePass', entity: 'selfServiceGatePasses' } as const
 

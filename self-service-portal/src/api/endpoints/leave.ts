@@ -1,6 +1,6 @@
 import { addDays, formatISO, isWeekend, parseISO } from 'date-fns'
 import { env } from '@/config/env'
-import { essGet, essPost } from '@/api/essClient'
+import { essGet, essPost } from '@/api/client/essClient'
 
 /**
  * Reference-aligned leave types. Mirrors the rows that the Laravel ESS

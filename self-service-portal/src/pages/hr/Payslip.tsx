@@ -5,7 +5,7 @@ import { useUnderConstruction } from '@/components/shared/UnderConstructionDialo
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import { payrollMonths, payrollYears } from '@/utils/constants'
+import { payrollMonths, payrollYears } from '@/data/payroll'
 
 export function Payslip() {
   const [year, setYear] = useState('2025')

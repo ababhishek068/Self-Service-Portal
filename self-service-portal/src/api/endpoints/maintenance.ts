@@ -1,5 +1,5 @@
 import { createModuleRequest, listModuleRequests } from './requestEndpoint'
-import type { MaintenanceRequestForm, TransferOrderForm } from '@/types/forms.types'
+import type { MaintenanceRequestForm, TransferOrderForm } from '@/schemas/requestSchemas'
 
 const maintenanceConfig = { module: 'maintenance', entity: 'selfServiceMaintenanceRequests' } as const
 const transferConfig = { module: 'transferOrder', entity: 'selfServiceTransferOrders' } as const

@@ -1,8 +1,8 @@
 import { formatISO } from 'date-fns'
 import { createPurchaseRequisition, listPurchaseRequisitions } from '@/api/endpoints/purchaseRequisition'
 import { RequestFormPage } from '@/components/shared/RequestFormPage'
-import { departments } from '@/utils/constants'
-import { purchaseRequisitionSchema, type PurchaseRequisitionForm } from '@/types/forms.types'
+import { departments } from '@/data/departments'
+import { purchaseRequisitionSchema, type PurchaseRequisitionForm } from '@/schemas/requestSchemas'
 
 const today = formatISO(new Date(), { representation: 'date' })
 const departmentOptions = departments.map((department) => ({ label: department.name, value: department.code }))

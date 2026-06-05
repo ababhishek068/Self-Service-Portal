@@ -1,8 +1,8 @@
 import { formatISO } from 'date-fns'
 import { createPettyCashRequest, listPettyCashRequests } from '@/api/endpoints/pettyCash'
 import { RequestFormPage } from '@/components/shared/RequestFormPage'
-import { departments } from '@/utils/constants'
-import { pettyCashSchema, type PettyCashForm } from '@/types/forms.types'
+import { departments } from '@/data/departments'
+import { pettyCashSchema, type PettyCashForm } from '@/schemas/requestSchemas'
 
 const today = formatISO(new Date(), { representation: 'date' })
 const departmentOptions = departments.map((department) => ({ label: department.name, value: department.code }))

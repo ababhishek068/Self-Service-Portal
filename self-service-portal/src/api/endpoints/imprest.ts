@@ -1,5 +1,5 @@
 import { createModuleRequest, listModuleRequests } from './requestEndpoint'
-import type { ImprestRequestForm, ImprestSurrenderForm } from '@/types/forms.types'
+import type { ImprestRequestForm, ImprestSurrenderForm } from '@/schemas/requestSchemas'
 
 const imprestConfig = { module: 'imprest', entity: 'selfServiceImprestRequests' } as const
 const surrenderConfig = { module: 'imprestSurrender', entity: 'selfServiceImprestSurrenders' } as const

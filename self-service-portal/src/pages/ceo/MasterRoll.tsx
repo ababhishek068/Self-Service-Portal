@@ -4,7 +4,7 @@ import { PageWrapper } from '@/components/layout/PageWrapper'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import { payrollMonths, payrollYears } from '@/utils/constants'
+import { payrollMonths, payrollYears } from '@/data/payroll'
 
 export function MasterRoll() {
   const [year, setYear] = useState<string>(payrollYears[0])

@@ -2,7 +2,7 @@ import { formatISO } from 'date-fns'
 import { createTransferOrder, listTransferOrders } from '@/api/endpoints/maintenance'
 import { RequestFormPage } from '@/components/shared/RequestFormPage'
 import { buildFaTagNumber } from '@/utils/validators'
-import { transferOrderSchema, type TransferOrderForm } from '@/types/forms.types'
+import { transferOrderSchema, type TransferOrderForm } from '@/schemas/requestSchemas'
 
 const today = formatISO(new Date(), { representation: 'date' })
 

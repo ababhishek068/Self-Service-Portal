@@ -1,5 +1,5 @@
 import { createModuleRequest, listModuleRequests } from './requestEndpoint'
-import type { PurchaseRequisitionForm } from '@/types/forms.types'
+import type { PurchaseRequisitionForm } from '@/schemas/requestSchemas'
 
 const purchaseConfig = { module: 'purchaseRequisition', entity: 'selfServicePurchaseRequisitions' } as const
 

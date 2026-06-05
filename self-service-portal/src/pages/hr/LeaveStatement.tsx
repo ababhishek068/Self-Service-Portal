@@ -4,7 +4,7 @@ import { PortalFormCard } from '@/components/shared/PortalFormCard'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import { leaveTypes } from '@/utils/constants'
+import { leaveTypes } from '@/data/leaveTypes'
 
 export function LeaveStatement() {
   const [leaveType, setLeaveType] = useState('')

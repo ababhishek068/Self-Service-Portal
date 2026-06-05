@@ -1,5 +1,5 @@
 import { useEffect, type ReactNode } from 'react'
-import { useLayout } from '@/context/LayoutContext'
+import { useLayout } from '@/hooks/useLayout'
 
 interface PageWrapperProps {
   title: string

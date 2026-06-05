@@ -18,5 +18,10 @@ export default defineConfig([
     languageOptions: {
       globals: globals.browser,
     },
+    rules: {
+      // Experimental rule from React 19 — fires on legitimate "sync state with
+      // prop / async result" patterns. Demote to warning until upstream matures.
+      'react-hooks/set-state-in-effect': 'warn',
+    },
   },
 ])

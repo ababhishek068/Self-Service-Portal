@@ -1,5 +1,5 @@
 import { createModuleRequest, listModuleRequests } from './requestEndpoint'
-import type { FuelRequestForm } from '@/types/forms.types'
+import type { FuelRequestForm } from '@/schemas/requestSchemas'
 
 const fuelConfig = { module: 'fuelRequest', entity: 'selfServiceFuelRequests' } as const
 

@@ -1,5 +1,5 @@
 import { createModuleRequest, listModuleRequests } from './requestEndpoint'
-import type { OvertimeRequestForm, TravelRequestForm } from '@/types/forms.types'
+import type { OvertimeRequestForm, TravelRequestForm } from '@/schemas/requestSchemas'
 
 const overtimeConfig = { module: 'overtime', entity: 'selfServiceOvertimeRequests' } as const
 const travelConfig = { module: 'travel', entity: 'selfServiceTravelRequests' } as const

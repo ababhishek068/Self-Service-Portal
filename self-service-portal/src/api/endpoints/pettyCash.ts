@@ -1,5 +1,5 @@
 import { createModuleRequest, listModuleRequests } from './requestEndpoint'
-import type { PettyCashForm } from '@/types/forms.types'
+import type { PettyCashForm } from '@/schemas/requestSchemas'
 
 const pettyCashConfig = { module: 'pettyCash', entity: 'selfServicePettyCashRequests' } as const
 

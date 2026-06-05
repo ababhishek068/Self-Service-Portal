@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { fetchCurrentUser, loginRequest, logoutRequest } from '@/api/endpoints/auth'
 import { env } from '@/config/env'
-import { currentEmployee } from '@/api/endpoints/_mockStore'
+import { currentEmployee } from '@/api/mock/mockStore'
 import { AuthContext, type AuthContextValue } from './authContextValue'
 import type { Employee } from '@/types/erp.types'
 

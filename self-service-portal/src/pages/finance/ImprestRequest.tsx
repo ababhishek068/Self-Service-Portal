@@ -1,8 +1,8 @@
 import { formatISO } from 'date-fns'
 import { createImprestRequest, listImprestRequests } from '@/api/endpoints/imprest'
 import { RequestFormPage } from '@/components/shared/RequestFormPage'
-import { departments } from '@/utils/constants'
-import { imprestRequestSchema, type ImprestRequestForm } from '@/types/forms.types'
+import { departments } from '@/data/departments'
+import { imprestRequestSchema, type ImprestRequestForm } from '@/schemas/requestSchemas'
 
 const today = formatISO(new Date(), { representation: 'date' })
 const departmentOptions = departments.map((department) => ({ label: department.name, value: department.code }))

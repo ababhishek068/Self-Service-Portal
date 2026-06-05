@@ -1,6 +1,6 @@
-import { clearEssSession, essGet, essPost } from '@/api/essClient'
+import { clearEssSession, essGet, essPost } from '@/api/client/essClient'
 import { env } from '@/config/env'
-import { mockEmployee } from './_mockStore'
+import { mockEmployee } from '@/api/mock/mockStore'
 import type { Employee } from '@/types/erp.types'
 
 /**

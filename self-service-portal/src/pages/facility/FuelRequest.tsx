@@ -1,7 +1,7 @@
 import { formatISO } from 'date-fns'
 import { createFuelRequest, listFuelRequests } from '@/api/endpoints/fuelRequest'
 import { RequestFormPage } from '@/components/shared/RequestFormPage'
-import { fuelRequestSchema, type FuelRequestForm } from '@/types/forms.types'
+import { fuelRequestSchema, type FuelRequestForm } from '@/schemas/requestSchemas'
 
 const today = formatISO(new Date(), { representation: 'date' })
 

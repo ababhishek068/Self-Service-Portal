@@ -1,8 +1,9 @@
 import { formatISO } from 'date-fns'
 import { createStaffClaim, listStaffClaims } from '@/api/endpoints/staffClaim'
 import { RequestFormPage } from '@/components/shared/RequestFormPage'
-import { departments, hospitalCoverage } from '@/utils/constants'
-import { staffClaimSchema, type StaffClaimForm } from '@/types/forms.types'
+import { departments } from '@/data/departments'
+import { hospitalCoverage } from '@/data/hospitalCoverage'
+import { staffClaimSchema, type StaffClaimForm } from '@/schemas/requestSchemas'
 
 const today = formatISO(new Date(), { representation: 'date' })
 const departmentOptions = departments.map((department) => ({ label: department.name, value: department.code }))

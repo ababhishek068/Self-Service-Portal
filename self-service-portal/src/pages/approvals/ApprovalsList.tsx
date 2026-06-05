@@ -8,7 +8,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge'
 import { useApprovals } from '@/hooks/useApprovals'
 import { formatCurrency, formatDateTime } from '@/utils/formatters'
 import type { ApprovalQueueItem } from '@/types/erp.types'
-import type { ApprovalListType } from '@/api/endpoints/_mockStore'
+import type { ApprovalListType } from '@/types/approval'
 
 interface ApprovalsListProps {
   type: ApprovalListType

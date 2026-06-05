@@ -2,7 +2,7 @@ import { formatISO } from 'date-fns'
 import { createGatePass, listGatePasses } from '@/api/endpoints/gatePass'
 import { RequestFormPage } from '@/components/shared/RequestFormPage'
 import { buildFaTagNumber } from '@/utils/validators'
-import { gatePassSchema, type GatePassForm } from '@/types/forms.types'
+import { gatePassSchema, type GatePassForm } from '@/schemas/requestSchemas'
 
 const today = formatISO(new Date(), { representation: 'date' })
 

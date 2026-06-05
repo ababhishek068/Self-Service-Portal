@@ -5,7 +5,6 @@ import {
   BarChart3,
   Building2,
   Car,
-  ChevronDown,
   CircleX,
   ClipboardCheck,
   ClipboardCopy,
@@ -30,29 +29,6 @@ import {
   Wallet,
   Wrench,
 } from 'lucide-react'
-import type { PortalModuleKey } from '@/types/erp.types'
-
-export const departments = [
-  { code: 'BO', name: 'Branch Operations', branchCode: 'HO', limit: 120000 },
-  { code: 'FIN', name: 'Finance', branchCode: 'HO', limit: 180000 },
-  { code: 'HR', name: 'Human Resources', branchCode: 'HO', limit: 90000 },
-  { code: 'ITN', name: 'IT Network and Infrastructure', branchCode: 'HO', limit: 75000 },
-  { code: 'FAC', name: 'Facility Management', branchCode: 'HO', limit: 150000 },
-] as const
-
-export const itemMaster = [
-  { code: 'ST032', description: 'Photocopy paper', uom: 'Pcs', stock: 480, unitPrice: 180, categoryCode: 'ST', isFixedAsset: false },
-  { code: 'ST067', description: 'Kyocera toner cartridge', uom: 'Pcs', stock: 42, unitPrice: 3900, categoryCode: 'ST', isFixedAsset: false },
-  { code: 'FA112', description: 'Laptop computer', uom: 'Pcs', stock: 11, unitPrice: 68000, categoryCode: 'IT', isFixedAsset: true },
-  { code: 'FA220', description: 'Office chair', uom: 'Pcs', stock: 33, unitPrice: 9800, categoryCode: 'FF', isFixedAsset: true },
-  { code: 'SRV210', description: 'Generator maintenance service', uom: 'Job', stock: 999, unitPrice: 12500, categoryCode: 'SRV', isFixedAsset: false },
-] as const
-
-export const hospitalCoverage = [
-  { category: 'Panel Hospital A', coveragePercent: 90 },
-  { category: 'Panel Hospital B', coveragePercent: 80 },
-  { category: 'Non-panel Hospital', coveragePercent: 50 },
-] as const
 
 export interface NavItem {
   label: string
@@ -151,57 +127,3 @@ export const navigationMenu: NavItem[] = [
   { label: 'Profile', path: '/profile', icon: UserRound },
   { label: 'Change Password', path: '/change-password', icon: KeyRound },
 ]
-
-/** @deprecated Use navigationMenu — kept for gradual migration */
-export const navigationGroups = navigationMenu
-  .filter((item): item is NavItem & { path: string } => Boolean(item.path))
-  .map((item) => ({ label: item.label, items: [{ label: item.label, path: item.path, icon: item.icon }] }))
-
-export { ChevronDown }
-
-export const moduleLabels: Record<PortalModuleKey, string> = {
-  imprest: 'Imprest Requisition',
-  imprestSurrender: 'Imprest Surrender',
-  staffClaim: 'Staff Claims',
-  pettyCash: 'Petty Cash Request',
-  storeRequisition: 'Store Requisition',
-  purchaseRequisition: 'Purchase Requisition',
-  fuelRequest: 'Fuel Requisition',
-  transport: 'Transport Requisition',
-  maintenance: 'Maintenance Request',
-  transferOrder: 'Transfer Orders',
-  gatePass: 'Gate Pass',
-  leave: 'Leave Requisition',
-  overtime: 'Overtime Request',
-  travel: 'Travel Request',
-}
-
-export const statusFlow = ['Draft', 'Pending Approval', 'Approved', 'Rejected', 'Cancelled', 'Posted', 'Pending'] as const
-
-export const leaveTypes = [
-  '--select--',
-  'Annual Leave',
-  'Postnatal Leave/Maternity',
-  'Wedding leave',
-  'Mourning Leave',
-  'Sick leave',
-  'leave without Pay',
-  'Special Leave',
-  'Prenatal Leave/Maternity',
-] as const
-
-export const payrollYears = ['2025', '2026', '2027'] as const
-export const payrollMonths = [
-  'January',
-  'February',
-  'March',
-  'April',
-  'May',
-  'June',
-  'July',
-  'August',
-  'September',
-  'October',
-  'November',
-  'December',
-] as const

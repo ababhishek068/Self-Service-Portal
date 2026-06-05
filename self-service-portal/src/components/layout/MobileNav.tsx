@@ -1,10 +1,10 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import { ChevronDown, X } from 'lucide-react'
-import { type NavItem } from '@/utils/constants'
+import { type NavItem } from '@/config/navigation'
 import { Button } from '@/components/ui/button'
 import { useAuth } from '@/hooks/useAuth'
-import { useLayout } from '@/context/LayoutContext'
+import { useLayout } from '@/hooks/useLayout'
 import { handleUnderConstructionClick, useNavigation } from '@/hooks/useNavigation'
 import { cn } from '@/lib/utils'
 

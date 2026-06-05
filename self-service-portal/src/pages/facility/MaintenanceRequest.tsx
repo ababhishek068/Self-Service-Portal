@@ -2,7 +2,7 @@ import { formatISO } from 'date-fns'
 import { createMaintenanceRequest, listMaintenanceRequests } from '@/api/endpoints/maintenance'
 import { RequestFormPage } from '@/components/shared/RequestFormPage'
 import { buildFaTagNumber } from '@/utils/validators'
-import { maintenanceRequestSchema, type MaintenanceRequestForm } from '@/types/forms.types'
+import { maintenanceRequestSchema, type MaintenanceRequestForm } from '@/schemas/requestSchemas'
 
 const today = formatISO(new Date(), { representation: 'date' })
 

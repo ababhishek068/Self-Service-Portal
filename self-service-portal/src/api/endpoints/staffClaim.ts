@@ -1,5 +1,5 @@
 import { createModuleRequest, listModuleRequests } from './requestEndpoint'
-import type { StaffClaimForm } from '@/types/forms.types'
+import type { StaffClaimForm } from '@/schemas/requestSchemas'
 
 const staffClaimConfig = { module: 'staffClaim', entity: 'selfServiceStaffClaims' } as const
 

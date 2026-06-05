@@ -1,7 +1,7 @@
 import { formatISO } from 'date-fns'
 import { createImprestSurrender, listImprestRequests } from '@/api/endpoints/imprest'
 import { RequestFormPage } from '@/components/shared/RequestFormPage'
-import { imprestSurrenderSchema, type ImprestSurrenderForm } from '@/types/forms.types'
+import { imprestSurrenderSchema, type ImprestSurrenderForm } from '@/schemas/requestSchemas'
 
 const today = formatISO(new Date(), { representation: 'date' })
 

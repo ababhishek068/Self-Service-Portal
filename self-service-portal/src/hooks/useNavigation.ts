@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { navigationMenu, type NavItem } from '@/utils/constants'
+import { navigationMenu, type NavItem } from '@/config/navigation'
 import { useAuth } from '@/hooks/useAuth'
 
 const UNDER_CONSTRUCTION_MESSAGE = '🚧 Feature under construction — coming soon!'

@@ -1,18 +1,5 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from 'react'
-
-interface LayoutContextValue {
-  pageTitle: string
-  setPageTitle: (title: string) => void
-  sidebarOpen: boolean
-  setSidebarOpen: (open: boolean) => void
-  toggleSidebar: () => void
-  mobileNavOpen: boolean
-  openMobileNav: () => void
-  closeMobileNav: () => void
-  toggleMobileNav: () => void
-}
-
-const LayoutContext = createContext<LayoutContextValue | null>(null)
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
+import { LayoutContext } from './layoutContextValue'
 
 export function LayoutProvider({ children }: { children: ReactNode }) {
   const [pageTitle, setPageTitle] = useState('Dashboard')
@@ -50,10 +37,4 @@ export function LayoutProvider({ children }: { children: ReactNode }) {
   )
 
   return <LayoutContext.Provider value={value}>{children}</LayoutContext.Provider>
-}
-
-export function useLayout() {
-  const context = useContext(LayoutContext)
-  if (!context) throw new Error('useLayout must be used within LayoutProvider')
-  return context
 }

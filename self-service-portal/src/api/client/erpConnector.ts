@@ -6,6 +6,14 @@ import axios, {
 import { assertRealErpConfig, env } from '@/config/env'
 import type { ODataError } from '@/types/erp.types'
 
+/**
+ * Legacy direct-Business-Central OData v4 client.
+ *
+ * Kept for backwards compatibility with code paths that talk straight to BC
+ * (bypassing the Laravel ESS backend). Prefer `essClient.ts` for new code —
+ * the Laravel layer already handles NTLM SOAP, CSRF, sessions, etc.
+ */
+
 export type ODataParams = Record<
   '$filter' | '$expand' | '$select' | '$top' | '$skip' | '$orderby' | string,
   string | number | boolean | null | undefined

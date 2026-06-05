@@ -4,7 +4,7 @@ import {
   getApprovalDetail,
   listApprovals,
 } from '@/api/endpoints/approvals'
-import type { ApprovalListType } from '@/api/endpoints/_mockStore'
+import type { ApprovalListType } from '@/types/approval'
 
 export function useApprovals(type: ApprovalListType = 'pending') {
   return useQuery({
