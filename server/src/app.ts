@@ -7,9 +7,14 @@ import authRoutes from './routes/auth.js'
 export function createApp() {
   const app = express()
 
+  // When CORS_ORIGINS contains "*", reflect whatever origin called us (a literal
+  // "*" string in a list never matches a real origin, and a wildcard can't be
+  // combined with credentials). Otherwise allow only the configured origins.
+  const allowAllOrigins = env.CORS_ORIGINS.includes('*')
+
   app.use(
     cors({
-      origin: env.CORS_ORIGINS,
+      origin: allowAllOrigins ? true : env.CORS_ORIGINS,
       credentials: true,
     }),
   )
