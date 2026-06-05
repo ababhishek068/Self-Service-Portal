@@ -32,11 +32,11 @@ export const leaveTypeCatalog: LeaveType[] = [
  * the reference `HREmployee::wsName()` call, excluding the current user.
  */
 export const relieversMock = [
-  { value: 'HB-01002', label: 'HB-01002 - M. Tadesse' },
-  { value: 'HB-01018', label: 'HB-01018 - SEADA IBRAHIM Mohammed' },
-  { value: 'HB-01024', label: 'HB-01024 - Ahmed Hassan' },
-  { value: 'HB-01031', label: 'HB-01031 - Fatima Ali' },
-  { value: 'HB-01045', label: 'HB-01045 - Yohannes Bekele' },
+  { value: 'HB-01002', label: 'HB-01002 - Employee 1' },
+  { value: 'HB-01018', label: 'HB-01018 - Employee 2' },
+  { value: 'HB-01024', label: 'HB-01024 - Employee 3' },
+  { value: 'HB-01031', label: 'HB-01031 - Employee 4' },
+  { value: 'HB-01045', label: 'HB-01045 - Employee 5' },
 ]
 
 export interface LeaveBalance {

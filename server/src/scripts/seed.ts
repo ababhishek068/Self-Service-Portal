@@ -23,9 +23,9 @@ interface SeedSpec {
 }
 
 const seeds: SeedSpec[] = [
-  { employeeNo: 'HB-02418', name: 'Beza', lastName: 'Yoseff', department: 'BO', phoneNumber: '0911000001', gender: 'Female', HOD: true, CEO: true },
-  { employeeNo: 'HB-01002', name: 'Mikael', lastName: 'Tadesse', department: 'FIN', phoneNumber: '0911000002', gender: 'Male', HOD: true, CEO: false },
-  { employeeNo: 'HB-03245', name: 'Yonas', lastName: 'Mekonnen', department: 'FAC', phoneNumber: '0911000003', gender: 'Male', HOD: false, CEO: false },
+  { employeeNo: 'HB-02418', name: 'Admin', lastName: 'User', department: 'BO', phoneNumber: '0911000001', gender: '', HOD: true, CEO: true },
+  { employeeNo: 'HB-01002', name: 'Manager', lastName: 'User', department: 'FIN', phoneNumber: '0911000002', gender: '', HOD: true, CEO: false },
+  { employeeNo: 'HB-03245', name: 'Staff', lastName: 'User', department: 'FAC', phoneNumber: '0911000003', gender: '', HOD: false, CEO: false },
 ]
 
 async function run() {

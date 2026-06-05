@@ -19,7 +19,7 @@ const initialRows: AttendanceRow[] = [
   {
     id: '1',
     date: '2026-04-21',
-    staffName: 'Beza Yoseff Abrehamm',
+    staffName: 'Demo User',
     timeIn: '08:00',
     timeOut: '17:00',
     hoursWorked: '9.00',
@@ -29,7 +29,7 @@ const initialRows: AttendanceRow[] = [
   {
     id: '2',
     date: '2026-04-15',
-    staffName: 'Beza Yoseff Abrehamm',
+    staffName: 'Demo User',
     timeIn: '08:15',
     timeOut: '17:05',
     hoursWorked: '8.83',
@@ -41,7 +41,7 @@ export function Attendance() {
   const { employee } = useAuth()
   const [rows, setRows] = useState(initialRows)
   const [confirmSignOut, setConfirmSignOut] = useState(false)
-  const staffName = employee?.displayName ?? 'Beza Yoseff Abrehamm'
+  const staffName = employee?.displayName ?? 'Demo User'
 
   const signIn = () => {
     const today = new Date().toISOString().slice(0, 10)

@@ -28,8 +28,8 @@ const delay = <T>(value: T, ms = 350) => new Promise<T>((resolve) => window.setT
 export const currentEmployee: Employee = {
   id: 'emp-hb-02418',
   employeeNo: 'HB-02418',
-  displayName: 'Beza Yoseff Abrehamm',
-  email: 'amina.hassan.com',
+  displayName: 'Demo User',
+  email: '',
   departmentCode: 'BO',
   departmentName: 'Branch Operations',
   branchCode: 'HO',
@@ -48,7 +48,7 @@ export const currentEmployee: Employee = {
 
 const checker = {
   employeeNo: 'HB-01002',
-  name: 'M. Tadesse',
+  name: 'Approver',
 }
 
 let sequence = 24
@@ -238,7 +238,7 @@ export async function mockReportRows(report: 'storeUsage' | 'leaveBalance' | 'ga
     ],
     leaveBalance: [
       { employeeNo: currentEmployee.employeeNo, name: currentEmployee.displayName, annualBalance: 16, used: 5, department: currentEmployee.departmentName },
-      { employeeNo: 'HB-03245', name: 'Yonas Mekonnen', annualBalance: 12, used: 9, department: 'Facility Management' },
+      { employeeNo: 'HB-03245', name: 'Staff Member', annualBalance: 12, used: 9, department: 'Facility Management' },
     ],
     gatePassLog: [
       { gatePassNo: 'GP-000122', type: 'Returnable', assetTag: 'HB/BO/IT/FA112/0007/2026', destination: 'Bole Branch', returnDate: today(), status: 'Pending Approval' },

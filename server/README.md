@@ -28,9 +28,9 @@ Demo accounts (all use password `Password@123`):
 
 | Staff No | Name | Roles |
 |----------|------|-------|
-| `HB-02418` | Beza Yoseff | CEO + HOD |
-| `HB-01002` | Mikael Tadesse | HOD |
-| `HB-03245` | Yonas Mekonnen | — |
+| `HB-02418` | Admin User | CEO + HOD |
+| `HB-01002` | Manager User | HOD |
+| `HB-03245` | Staff User | — |
 
 ---
 

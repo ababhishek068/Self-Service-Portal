@@ -19,7 +19,7 @@ export function TransferOrder() {
       defaultValues={{
         transferType: 'Temporary',
         assetTagNumber: buildFaTagNumber('BO', 'IT', 'FA112', 7),
-        fromEmployee: 'Amina Hassan',
+        fromEmployee: '',
         toEmployee: '',
         handoverDate: today,
         returnDate: today,
