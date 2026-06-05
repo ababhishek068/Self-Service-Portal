@@ -1,0 +1,38 @@
+// Prisma schema for the Self-Service Portal database (MySQL / MariaDB).
+//
+// After editing this file:
+//   npm run generate        # regenerate the typed client
+//   npm run migrate         # create/apply a dev migration
+//   npm run migrate:deploy  # apply migrations in production
+
+generator client {
+  provider = "prisma-client-js"
+  // "native" → your laptop; "rhel-openssl-3.0.x" → Vercel's serverless runtime.
+  binaryTargets = ["native", "rhel-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+/// Application users for "our backend" login (way #2).
+/// Passwords are stored only as bcrypt hashes — never plaintext.
+model User {
+  id                 Int      @id @default(autoincrement())
+  employeeNo         String   @unique @map("employee_no")
+  name               String
+  lastName           String   @default("") @map("last_name")
+  department         String   @default("")
+  phoneNumber        String   @default("") @map("phone_number")
+  gender             String   @default("")
+  passwordHash       String   @map("password_hash")
+  status             String   @default("Active") // Active | Inactive | Blocked
+  hod                Boolean  @default(false)
+  ceo                Boolean  @default(false)
+  mustChangePassword Boolean  @default(false) @map("must_change_password")
+  createdAt          DateTime @default(now()) @map("created_at")
+  updatedAt          DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}

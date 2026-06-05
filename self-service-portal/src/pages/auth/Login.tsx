@@ -8,8 +8,10 @@ import { useAuth } from '@/hooks/useAuth'
 
 export function Login() {
   const { isAuthenticated, login, submitting, error } = useAuth()
-  const [employeeNo, setEmployeeNo] = useState(env.USE_MOCK ? 'HB-02418' : '')
-  const [password, setPassword] = useState(env.USE_MOCK ? 'demo' : '')
+  // Prefill demo credentials only when no real auth backend is configured.
+  const demoMode = !env.AUTH_API_URL
+  const [employeeNo, setEmployeeNo] = useState(demoMode ? 'HB-02418' : '')
+  const [password, setPassword] = useState(demoMode ? 'demo' : '')
 
   if (isAuthenticated) return <Navigate to="/" replace />
 

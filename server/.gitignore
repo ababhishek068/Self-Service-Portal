@@ -1,0 +1,8 @@
+node_modules
+dist
+.env
+.env.local
+
+# Local user store contains password hashes — do not commit.
+data/users.json
+*.log

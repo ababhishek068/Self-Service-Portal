@@ -1,34 +1,35 @@
-import { clearEssSession, essGet, essPost } from '@/api/client/essClient'
+import { authGet, authPost, clearToken, getToken, setToken } from '@/api/client/authClient'
 import { env } from '@/config/env'
 import { mockEmployee } from '@/api/mock/mockStore'
 import type { Employee } from '@/types/erp.types'
 
 /**
- * Raw Laravel session-user shape returned by `/api/login` and `/api/me`.
- * Mirrors the array built in
- * App\Http\Controllers\Auth\AuthenticatedSessionController.
+ * Canonical user shape returned by our backend's auth endpoints
+ * (and, later, by the Business Central provider). The contract is identical
+ * regardless of which provider authenticated the user.
  */
-export interface EssSessionUser {
+export interface AuthUser {
   employeeNo: string
   name: string
-  displayName?: string
-  userID: string
-  phoneNumber?: string
-  Gender?: string
-  userCategory?: 'staff' | 'farmer'
-  isChangedPassword?: boolean
-  department?: string
-  imprestNo?: string
-  HOD?: boolean
-  CEO?: boolean
+  displayName: string
+  department: string
+  phoneNumber: string
+  gender: string
+  userCategory: 'staff' | 'farmer'
+  HOD: boolean
+  CEO: boolean
+  mustChangePassword: boolean
 }
 
-/** Convert the Laravel session user payload into our portal `Employee` type. */
-function toEmployee(user: EssSessionUser): Employee {
+/** True when a real auth backend is configured; otherwise we use mock login. */
+const useRealAuth = Boolean(env.AUTH_API_URL)
+
+/** Map the backend auth user into the portal's richer `Employee` type. */
+function toEmployee(user: AuthUser): Employee {
   return {
     id: user.employeeNo,
     employeeNo: user.employeeNo,
-    displayName: user.displayName ?? user.name ?? user.employeeNo,
+    displayName: user.displayName || user.name || user.employeeNo,
     email: '',
     departmentCode: user.department ?? '',
     departmentName: '',
@@ -48,30 +49,42 @@ function toEmployee(user: EssSessionUser): Employee {
 }
 
 export async function loginRequest(staffNo: string, password: string): Promise<Employee> {
-  if (env.USE_MOCK) {
+  if (!useRealAuth) {
     return mockEmployee()
   }
-  const { user } = await essPost<{ user: EssSessionUser }>('/api/login', { staffNo, password })
+  const { token, user } = await authPost<{ token: string; user: AuthUser }>('/api/auth/login', {
+    staffNo,
+    password,
+  })
+  setToken(token)
   return toEmployee(user)
 }
 
 export async function logoutRequest(): Promise<void> {
-  if (env.USE_MOCK) return
+  if (!useRealAuth) return
   try {
-    await essPost('/api/logout', {})
+    await authPost('/api/auth/logout', {})
+  } catch {
+    /* even if the call fails, we still drop the local token below */
   } finally {
-    clearEssSession()
+    clearToken()
   }
 }
 
 export async function fetchCurrentUser(): Promise<Employee | null> {
-  if (env.USE_MOCK) {
+  if (!useRealAuth) {
     return mockEmployee()
   }
+  if (!getToken()) return null
   try {
-    const { user } = await essGet<{ user: EssSessionUser | null }>('/api/me')
-    return user ? toEmployee(user) : null
+    const { user } = await authGet<{ user: AuthUser }>('/api/auth/me')
+    return toEmployee(user)
   } catch {
     return null
   }
+}
+
+export async function changePasswordRequest(currentPassword: string, newPassword: string): Promise<void> {
+  if (!useRealAuth) return
+  await authPost('/api/auth/change-password', { currentPassword, newPassword })
 }
