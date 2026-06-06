@@ -6,16 +6,17 @@ import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 
 const connectorReadiness = async () => ({
-  mode: env.USE_MOCK ? 'Mock mode' : 'Business Central mode',
+  mode: env.ERP_BASE_URL ? 'Business Central mode' : 'Not configured',
   baseUrl: env.ERP_BASE_URL || 'Not configured',
   tokenUrl: env.TOKEN_URL || 'Not configured',
   scope: env.SCOPE,
+  portalApi: env.AUTH_API_URL || 'Not configured',
   checks: [
+    'Portal data served by Node backend (VITE_AUTH_API_URL)',
     'OAuth2 client_credentials token cache with expiry refresh',
     'Axios interceptors for 401 re-authentication',
     'Typed erpGet, erpPost, erpPatch, erpDelete helpers',
     'OData $filter, $select, $expand, $top, $skip, and $orderby params',
-    'Mock-to-real switch via VITE_USE_MOCK',
   ],
 })
 
@@ -29,7 +30,7 @@ export function ErpConnector() {
         <Card>
           <CardHeader>
             <CardTitle>Connection model</CardTitle>
-            <CardDescription>Use mock data for UI development, then switch to Business Central by changing one env variable.</CardDescription>
+            <CardDescription>Portal screens use the Node backend. This page documents the optional direct Business Central OData connector.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4 text-sm text-slate-700">
             <div className="grid gap-3 md:grid-cols-2">
@@ -59,7 +60,7 @@ export function ErpConnector() {
           <CardHeader>
             <div className="flex items-center justify-between gap-3">
               <CardTitle>Readiness</CardTitle>
-              <Badge variant={env.USE_MOCK ? 'yellow' : 'green'}>{data?.mode}</Badge>
+              <Badge variant={env.ERP_BASE_URL ? 'green' : 'yellow'}>{data?.mode}</Badge>
             </div>
             <CardDescription>Connector capabilities implemented in src/api/erpConnector.ts.</CardDescription>
           </CardHeader>

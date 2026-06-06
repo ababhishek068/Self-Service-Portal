@@ -1,5 +1,5 @@
 import { authGet, authPost } from '@/api/client/authClient'
-import { env } from '@/config/env'
+import { requireAuthApiUrl } from '@/api/requireBackend'
 
 export interface AttendanceRow {
   id: string
@@ -15,26 +15,26 @@ export interface AttendanceRow {
 }
 
 export async function listAttendanceRecords(): Promise<AttendanceRow[]> {
-  if (env.USE_MOCK || !env.AUTH_API_URL) return []
+  requireAuthApiUrl()
   const { rows } = await authGet<{ rows: AttendanceRow[] }>('/api/attendance')
   return rows
 }
 
 export async function listTeamAttendanceRecords(): Promise<AttendanceRow[]> {
-  if (env.USE_MOCK || !env.AUTH_API_URL) return []
+  requireAuthApiUrl()
   const { rows } = await authGet<{ rows: AttendanceRow[] }>('/api/attendance/team')
   return rows
 }
 
-export async function signInAttendance(location: string): Promise<AttendanceRow | null> {
-  if (env.USE_MOCK || !env.AUTH_API_URL) return null
+export async function signInAttendance(location: string): Promise<AttendanceRow> {
+  requireAuthApiUrl()
   return authPost<AttendanceRow>('/api/attendance/sign-in', {
     location,
     comments: location === 'Location denied' ? 'Signed in without coordinates' : 'Signed in',
   })
 }
 
-export async function signOutAttendance(): Promise<AttendanceRow | null> {
-  if (env.USE_MOCK || !env.AUTH_API_URL) return null
+export async function signOutAttendance(): Promise<AttendanceRow> {
+  requireAuthApiUrl()
   return authPost<AttendanceRow>('/api/attendance/sign-out', {})
 }

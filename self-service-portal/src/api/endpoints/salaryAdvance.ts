@@ -3,7 +3,7 @@ import type { SalaryAdvanceForm } from '@/schemas/requestSchemas'
 
 const config = { module: 'salaryAdvance' as const, entity: 'selfServiceSalaryAdvanceRequests' }
 
-export const listSalaryAdvanceRequests = () => listModuleRequests(config, { $orderby: 'createdAt desc' })
+export const listSalaryAdvanceRequests = () => listModuleRequests(config)
 
 export const createSalaryAdvanceRequest = (payload: SalaryAdvanceForm) =>
   createModuleRequest(config, {

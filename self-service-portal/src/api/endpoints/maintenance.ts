@@ -4,9 +4,9 @@ import type { MaintenanceRequestForm, TransferOrderForm } from '@/schemas/reques
 const maintenanceConfig = { module: 'maintenance', entity: 'selfServiceMaintenanceRequests' } as const
 const transferConfig = { module: 'transferOrder', entity: 'selfServiceTransferOrders' } as const
 
-export const listMaintenanceRequests = () => listModuleRequests(maintenanceConfig, { $orderby: 'createdAt desc' })
+export const listMaintenanceRequests = () => listModuleRequests(maintenanceConfig)
 
-export const listTransferOrders = () => listModuleRequests(transferConfig, { $orderby: 'createdAt desc' })
+export const listTransferOrders = () => listModuleRequests(transferConfig)
 
 export const createMaintenanceRequest = (payload: MaintenanceRequestForm) =>
   createModuleRequest(maintenanceConfig, {

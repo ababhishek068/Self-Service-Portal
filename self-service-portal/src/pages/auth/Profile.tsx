@@ -10,7 +10,6 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { cn } from '@/lib/utils'
 import {
-  defaultProfileDetails,
   type AssignedAsset,
   type EmploymentRecord,
   type NextOfKin,
@@ -36,7 +35,23 @@ export function Profile() {
   const { roleLabels: userRoleLabels } = usePermissions()
   const [activeTab, setActiveTab] = useState<ProfileTab>('personal')
   const profileQuery = useQuery({ queryKey: ['profile', 'details'], queryFn: getEmployeeProfileDetails })
-  const profile = profileQuery.data ?? defaultProfileDetails
+  const profile = profileQuery.data
+
+  if (profileQuery.isLoading) {
+    return (
+      <PageWrapper title="Profile">
+        <p className="text-sm text-slate-600">Loading profile from server…</p>
+      </PageWrapper>
+    )
+  }
+
+  if (profileQuery.isError || !profile) {
+    return (
+      <PageWrapper title="Profile">
+        <p className="text-sm text-red-600">Could not load profile. Check that the backend is running.</p>
+      </PageWrapper>
+    )
+  }
 
   const kinColumns: DataTableColumn<NextOfKin>[] = [
     { id: 'name', header: 'Name', cell: (row) => row.name },

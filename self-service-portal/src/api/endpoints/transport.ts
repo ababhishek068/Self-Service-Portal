@@ -3,7 +3,7 @@ import type { TransportRequestForm } from '@/schemas/requestSchemas'
 
 const transportConfig = { module: 'transport', entity: 'selfServiceTransportRequests' } as const
 
-export const listTransportRequests = () => listModuleRequests(transportConfig, { $orderby: 'createdAt desc' })
+export const listTransportRequests = () => listModuleRequests(transportConfig)
 
 export const createTransportRequest = (payload: TransportRequestForm) =>
   createModuleRequest(transportConfig, {

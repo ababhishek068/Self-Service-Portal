@@ -3,7 +3,7 @@ import type { StaffClaimForm } from '@/schemas/requestSchemas'
 
 const staffClaimConfig = { module: 'staffClaim', entity: 'selfServiceStaffClaims' } as const
 
-export const listStaffClaims = () => listModuleRequests(staffClaimConfig, { $orderby: 'createdAt desc' })
+export const listStaffClaims = () => listModuleRequests(staffClaimConfig)
 
 export const createStaffClaim = (payload: StaffClaimForm) => {
   const netAmount =

@@ -8,7 +8,6 @@ import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import { env } from '@/config/env'
 import { leaveTypes } from '@/data/leaveTypes'
 import { useAuth } from '@/hooks/useAuth'
 import { formatDate } from '@/utils/formatters'
@@ -22,11 +21,6 @@ interface StatementRow {
   balance: number
   status: string
 }
-
-const fallbackStatement: StatementRow[] = [
-  { id: '1', leaveType: 'Annual Leave', startDate: '2026-03-10', endDate: '2026-03-12', days: 3, balance: 16, status: 'Approved' },
-  { id: '2', leaveType: 'Sick Leave', startDate: '2026-01-05', endDate: '2026-01-06', days: 2, balance: 8, status: 'Approved' },
-]
 
 export function LeaveStatement() {
   const { employee } = useAuth()
@@ -53,8 +47,7 @@ export function LeaveStatement() {
       balance: employee?.leaveBalance ?? 0,
       status: row.Status,
     })) ?? []
-  const sourceRows = liveRows.length > 0 || (env.AUTH_API_URL && !env.USE_MOCK) ? liveRows : fallbackStatement
-  const rows = sourceRows.filter((row) => !leaveType || row.leaveType === leaveType)
+  const rows = liveRows.filter((row) => !leaveType || row.leaveType === leaveType)
 
   return (
     <PageWrapper title="Leave Statement" showPageHeading={false}>

@@ -64,7 +64,6 @@ const friendlyMessages: Record<number, string> = {
 }
 
 export async function getAccessToken(forceRefresh = false) {
-  if (env.USE_MOCK) return 'mock-token'
   assertRealErpConfig()
 
   if (!forceRefresh && tokenCache && tokenCache.expiresAt > Date.now() + 60_000) {
@@ -91,10 +90,8 @@ export async function getAccessToken(forceRefresh = false) {
 }
 
 erpHttp.interceptors.request.use(async (config) => {
-  if (!env.USE_MOCK) {
-    const token = await getAccessToken()
-    config.headers.Authorization = `Bearer ${token}`
-  }
+  const token = await getAccessToken()
+  config.headers.Authorization = `Bearer ${token}`
   return config
 })
 
@@ -104,7 +101,7 @@ erpHttp.interceptors.response.use(
     const status = error.response?.status
     const config = error.config as RetryableConfig | undefined
 
-    if (!env.USE_MOCK && status === 401 && config && !config._retry) {
+    if (status === 401 && config && !config._retry) {
       config._retry = true
       tokenCache = null
       const token = await getAccessToken(true)

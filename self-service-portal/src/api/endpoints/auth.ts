@@ -1,7 +1,6 @@
 import { authGet, authPost, clearToken, getToken, setToken } from '@/api/client/authClient'
-import { env } from '@/config/env'
+import { requireAuthApiUrl } from '@/api/requireBackend'
 import { deriveRoles } from '@/config/roles'
-import { mockEmployee } from '@/api/mock/mockStore'
 import type { Employee } from '@/types/erp.types'
 
 /**
@@ -36,9 +35,6 @@ export interface AuthUser {
   mustChangePassword: boolean
 }
 
-/** True when a real auth backend is configured; otherwise we use mock login. */
-const useRealAuth = Boolean(env.AUTH_API_URL)
-
 /** Map the backend auth user into the portal's richer `Employee` type. */
 function toEmployee(user: AuthUser): Employee {
   const roles = deriveRoles(user)
@@ -68,9 +64,7 @@ function toEmployee(user: AuthUser): Employee {
 }
 
 export async function loginRequest(staffNo: string, password: string): Promise<Employee> {
-  if (!useRealAuth) {
-    return mockEmployee()
-  }
+  requireAuthApiUrl()
   const { token, user } = await authPost<{ token: string; user: AuthUser }>('/api/auth/login', {
     staffNo,
     password,
@@ -80,7 +74,7 @@ export async function loginRequest(staffNo: string, password: string): Promise<E
 }
 
 export async function logoutRequest(): Promise<void> {
-  if (!useRealAuth) return
+  requireAuthApiUrl()
   try {
     await authPost('/api/auth/logout', {})
   } catch {
@@ -91,9 +85,7 @@ export async function logoutRequest(): Promise<void> {
 }
 
 export async function fetchCurrentUser(): Promise<Employee | null> {
-  if (!useRealAuth) {
-    return mockEmployee()
-  }
+  requireAuthApiUrl()
   if (!getToken()) return null
   try {
     const { user } = await authGet<{ user: AuthUser }>('/api/auth/me')
@@ -104,6 +96,6 @@ export async function fetchCurrentUser(): Promise<Employee | null> {
 }
 
 export async function changePasswordRequest(currentPassword: string, newPassword: string): Promise<void> {
-  if (!useRealAuth) return
+  requireAuthApiUrl()
   await authPost('/api/auth/change-password', { currentPassword, newPassword })
 }

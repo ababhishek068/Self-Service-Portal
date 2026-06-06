@@ -1,6 +1,5 @@
 import { useState } from 'react'
 import { Navigate } from 'react-router-dom'
-import { env } from '@/config/env'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -9,10 +8,8 @@ import { brand } from '@/config/brand'
 
 export function Login() {
   const { isAuthenticated, login, submitting, error } = useAuth()
-  // Prefill demo credentials only when no real auth backend is configured.
-  const demoMode = !env.AUTH_API_URL
-  const [employeeNo, setEmployeeNo] = useState(demoMode ? 'EMP-03245' : '')
-  const [password, setPassword] = useState(demoMode ? 'Password@123' : '')
+  const [employeeNo, setEmployeeNo] = useState('')
+  const [password, setPassword] = useState('')
 
   if (isAuthenticated) return <Navigate to="/" replace />
 

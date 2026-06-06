@@ -1,5 +1,5 @@
 import { authGet } from '@/api/client/authClient'
-import { env } from '@/config/env'
+import { requireAuthApiUrl } from '@/api/requireBackend'
 
 export interface PayslipLine {
   label: string
@@ -33,13 +33,11 @@ export interface MasterRollResponse {
 }
 
 export async function getPayslip(year: string, month: string): Promise<PayslipResponse | null> {
-  if (env.USE_MOCK || !env.AUTH_API_URL) return null
+  requireAuthApiUrl()
   return authGet<PayslipResponse>('/api/payroll/payslip', { params: { year, month } })
 }
 
 export async function getMasterRoll(year: string, month: string): Promise<MasterRollResponse> {
-  if (env.USE_MOCK || !env.AUTH_API_URL) {
-    return { rows: [], summary: { headcount: 0, grossPay: 0, totalDeductions: 0, netPay: 0 } }
-  }
+  requireAuthApiUrl()
   return authGet<MasterRollResponse>('/api/payroll/master-roll', { params: { year, month } })
 }

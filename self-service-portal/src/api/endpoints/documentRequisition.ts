@@ -3,7 +3,7 @@ import type { DocumentRequisitionForm } from '@/schemas/requestSchemas'
 
 const config = { module: 'documentRequisition' as const, entity: 'selfServiceDocumentRequests' }
 
-export const listDocumentRequisitions = () => listModuleRequests(config, { $orderby: 'createdAt desc' })
+export const listDocumentRequisitions = () => listModuleRequests(config)
 
 export const createDocumentRequisition = (payload: DocumentRequisitionForm) =>
   createModuleRequest(config, {

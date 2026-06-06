@@ -1,5 +1,5 @@
 import { authGet } from '@/api/client/authClient'
-import { env } from '@/config/env'
+import { requireAuthApiUrl } from '@/api/requireBackend'
 
 export interface HodTeamRequestRow {
   id: string
@@ -23,13 +23,13 @@ export interface HodStaffLeaveRow {
 }
 
 export async function listHodTeamRequests(): Promise<HodTeamRequestRow[]> {
-  if (env.USE_MOCK || !env.AUTH_API_URL) return []
+  requireAuthApiUrl()
   const { rows } = await authGet<{ rows: HodTeamRequestRow[] }>('/api/hod/team-requests')
   return rows
 }
 
 export async function listHodStaffOnLeave(): Promise<HodStaffLeaveRow[]> {
-  if (env.USE_MOCK || !env.AUTH_API_URL) return []
+  requireAuthApiUrl()
   const { rows } = await authGet<{ rows: HodStaffLeaveRow[] }>('/api/hod/staff-on-leave')
   return rows
 }

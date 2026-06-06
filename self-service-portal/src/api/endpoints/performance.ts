@@ -1,5 +1,5 @@
 import { authGet } from '@/api/client/authClient'
-import { env } from '@/config/env'
+import { requireAuthApiUrl } from '@/api/requireBackend'
 
 export interface PerformanceRow {
   id: string
@@ -14,7 +14,7 @@ export interface PerformanceRow {
 }
 
 export async function listPerformanceReviews(): Promise<PerformanceRow[]> {
-  if (env.USE_MOCK || !env.AUTH_API_URL) return []
+  requireAuthApiUrl()
   const { rows } = await authGet<{ rows: PerformanceRow[] }>('/api/performance')
   return rows
 }

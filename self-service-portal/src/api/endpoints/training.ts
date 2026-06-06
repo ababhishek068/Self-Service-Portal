@@ -3,7 +3,7 @@ import type { TrainingNeedsForm } from '@/schemas/requestSchemas'
 
 const config = { module: 'training' as const, entity: 'selfServiceTrainingRequests' }
 
-export const listTrainingRequests = () => listModuleRequests(config, { $orderby: 'createdAt desc' })
+export const listTrainingRequests = () => listModuleRequests(config)
 
 export const createTrainingRequest = (payload: TrainingNeedsForm) =>
   createModuleRequest(config, {

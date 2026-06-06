@@ -17,9 +17,7 @@ import {
   fetchRelievers,
   getLeaveBalance,
   getLeaveDates,
-  leaveTypeCatalog,
   listLeaveRequests,
-  relieversMock,
   submitLeaveRequest,
   type LeaveListRow,
   type LeaveType,
@@ -64,8 +62,8 @@ export function LeaveRequest() {
   const [isHourly, setIsHourly] = useState(false)
   const [pendingDuplicate, setPendingDuplicate] = useState(false)
   const [balanceLoading, setBalanceLoading] = useState(false)
-  const [types, setTypes] = useState<LeaveType[]>(leaveTypeCatalog)
-  const [relievers, setRelievers] = useState(relieversMock)
+  const [types, setTypes] = useState<LeaveType[]>([])
+  const [relievers, setRelievers] = useState<Array<{ value: string; label: string }>>([])
   const [submittingForm, setSubmittingForm] = useState(false)
 
   const gender = employee?.gender || 'Male'
@@ -74,10 +72,10 @@ export function LeaveRequest() {
   useEffect(() => {
     fetchLeaveTypes()
       .then((fetched) => setTypes(filterLeaveTypesByGender(fetched, gender)))
-      .catch(() => setTypes(filterLeaveTypesByGender(leaveTypeCatalog, gender)))
+      .catch(() => setTypes([]))
     fetchRelievers()
       .then(setRelievers)
-      .catch(() => setRelievers(relieversMock))
+      .catch(() => setRelievers([]))
   }, [gender])
 
   const [appliedDays, setAppliedDays] = useState('')

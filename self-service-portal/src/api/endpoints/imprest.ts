@@ -4,7 +4,7 @@ import type { ImprestRequestForm, ImprestSurrenderForm } from '@/schemas/request
 const imprestConfig = { module: 'imprest', entity: 'selfServiceImprestRequests' } as const
 const surrenderConfig = { module: 'imprestSurrender', entity: 'selfServiceImprestSurrenders' } as const
 
-export const listImprestRequests = () => listModuleRequests(imprestConfig, { $orderby: 'createdAt desc' })
+export const listImprestRequests = () => listModuleRequests(imprestConfig)
 
 export const createImprestRequest = (payload: ImprestRequestForm) =>
   createModuleRequest(imprestConfig, {

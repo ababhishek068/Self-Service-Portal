@@ -3,7 +3,7 @@ import type { StoreRequisitionForm } from '@/schemas/requestSchemas'
 
 const storeConfig = { module: 'storeRequisition', entity: 'selfServiceStoreRequisitions' } as const
 
-export const listStoreRequisitions = () => listModuleRequests(storeConfig, { $expand: 'lines', $orderby: 'createdAt desc' })
+export const listStoreRequisitions = () => listModuleRequests(storeConfig)
 
 export const createStoreRequisition = (payload: StoreRequisitionForm) =>
   createModuleRequest(storeConfig, {

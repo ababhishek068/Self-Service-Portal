@@ -1,27 +1,23 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { fetchCurrentUser, loginRequest, logoutRequest } from '@/api/endpoints/auth'
-import { env } from '@/config/env'
-import { currentEmployee } from '@/api/mock/mockStore'
 import { AuthContext, type AuthContextValue } from './authContextValue'
 import type { Employee } from '@/types/erp.types'
 
-/** When no real auth backend is configured, run in mock mode (auto-signed-in). */
-const useRealAuth = Boolean(env.AUTH_API_URL)
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  // In mock mode we start as authenticated for dev-friendliness.
-  const [employee, setEmployee] = useState<Employee | null>(useRealAuth ? null : currentEmployee)
-  const [bootstrapped, setBootstrapped] = useState(!useRealAuth)
+  const [employee, setEmployee] = useState<Employee | null>(null)
+  const [bootstrapped, setBootstrapped] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
   /** On first paint, ask the backend whether we already have a valid session/token. */
   useEffect(() => {
-    if (!useRealAuth) return
     let cancelled = false
     fetchCurrentUser()
       .then((user) => {
         if (!cancelled) setEmployee(user)
+      })
+      .catch(() => {
+        if (!cancelled) setEmployee(null)
       })
       .finally(() => {
         if (!cancelled) setBootstrapped(true)

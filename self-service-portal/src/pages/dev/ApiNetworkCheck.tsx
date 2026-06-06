@@ -139,7 +139,7 @@ export function ApiNetworkCheck() {
             <li>Click <strong>Run all API checks</strong> — you should see requests to <code>localhost:4000</code>.</li>
           </ol>
           <p className="mt-2 text-xs text-blue-700">
-            Backend: {env.AUTH_API_URL || '(not set)'} · Mock: {env.USE_MOCK ? 'on' : 'off'}
+            Backend: {env.AUTH_API_URL || '(not set — required)'}
           </p>
         </div>
 

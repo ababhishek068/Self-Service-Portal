@@ -4,7 +4,7 @@ import type { PurchaseRequisitionForm } from '@/schemas/requestSchemas'
 const purchaseConfig = { module: 'purchaseRequisition', entity: 'selfServicePurchaseRequisitions' } as const
 
 export const listPurchaseRequisitions = () =>
-  listModuleRequests(purchaseConfig, { $expand: 'lines,attachments', $orderby: 'createdAt desc' })
+  listModuleRequests(purchaseConfig)
 
 export const createPurchaseRequisition = (payload: PurchaseRequisitionForm) =>
   createModuleRequest(purchaseConfig, {

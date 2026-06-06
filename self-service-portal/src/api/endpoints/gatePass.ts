@@ -3,7 +3,7 @@ import type { GatePassForm } from '@/schemas/requestSchemas'
 
 const gatePassConfig = { module: 'gatePass', entity: 'selfServiceGatePasses' } as const
 
-export const listGatePasses = () => listModuleRequests(gatePassConfig, { $orderby: 'createdAt desc' })
+export const listGatePasses = () => listModuleRequests(gatePassConfig)
 
 export const createGatePass = (payload: GatePassForm) =>
   createModuleRequest(gatePassConfig, {

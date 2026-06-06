@@ -1,5 +1,5 @@
 import { authGet } from '@/api/client/authClient'
-import { env } from '@/config/env'
+import { requireAuthApiUrl } from '@/api/requireBackend'
 
 export interface WorkTicketRow {
   id: string
@@ -11,7 +11,7 @@ export interface WorkTicketRow {
 }
 
 export async function listWorkTickets(): Promise<WorkTicketRow[]> {
-  if (env.USE_MOCK || !env.AUTH_API_URL) return []
+  requireAuthApiUrl()
   const { rows } = await authGet<{ rows: WorkTicketRow[] }>('/api/work-tickets')
   return rows
 }

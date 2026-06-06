@@ -1,32 +1,16 @@
 const read = (key: string, fallback = '') => import.meta.env[key] ?? fallback
 
-const bool = (value: string | boolean | undefined, fallback = false) => {
-  if (typeof value === 'boolean') return value
-  if (value === undefined || value === '') return fallback
-  return ['true', '1', 'yes', 'on'].includes(value.toLowerCase())
-}
-
-const authApiUrl = read('VITE_AUTH_API_URL')
-
-/**
- * When a real auth API is configured we default to live data (USE_MOCK=false).
- * Set VITE_USE_MOCK=true explicitly only if you need mock lists while still
- * testing JWT login against the backend.
- */
-function resolveUseMock(): boolean {
-  const raw = import.meta.env.VITE_USE_MOCK
-  if (raw === undefined || raw === '') return !authApiUrl
-  return bool(raw, !authApiUrl)
-}
-
 export const env = {
-  /** Base URL of "our backend" (Node JWT API, e.g. http://localhost:4000). Empty = not configured (falls back to mock login). */
-  AUTH_API_URL: authApiUrl,
+  /**
+   * Base URL of the Node JWT + portal API (required). All portal data comes from
+   * this backend — there is no mock or hardcoded fallback.
+   */
+  AUTH_API_URL: read('VITE_AUTH_API_URL'),
 
-  /** Base URL of the Laravel ESS backend (e.g. http://192.168.224.37:81). Empty = same-origin. */
+  /** Legacy Laravel ESS — not used when AUTH_API_URL is set. */
   ESS_API_URL: read('VITE_ESS_API_URL'),
 
-  /** Legacy Business Central direct-connection vars (kept for backwards compatibility). */
+  /** Legacy Business Central direct-connection vars. */
   ERP_BASE_URL: read('VITE_ERP_BASE_URL'),
   TOKEN_URL: read('VITE_TOKEN_URL'),
   CLIENT_ID: read('VITE_CLIENT_ID'),
@@ -35,7 +19,6 @@ export const env = {
   ERP_COMPANY_ID: read('VITE_ERP_COMPANY_ID'),
 
   APP_NAME: read('VITE_APP_NAME', 'Self Service Portal'),
-  USE_MOCK: resolveUseMock(),
 } as const
 
 export type Env = typeof env

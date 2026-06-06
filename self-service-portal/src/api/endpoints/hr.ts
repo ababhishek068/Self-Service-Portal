@@ -4,7 +4,7 @@ import type { OvertimeRequestForm, TravelRequestForm } from '@/schemas/requestSc
 const overtimeConfig = { module: 'overtime', entity: 'selfServiceOvertimeRequests' } as const
 const travelConfig = { module: 'travel', entity: 'selfServiceTravelRequests' } as const
 
-export const listOvertimeRequests = () => listModuleRequests(overtimeConfig, { $orderby: 'createdAt desc' })
+export const listOvertimeRequests = () => listModuleRequests(overtimeConfig)
 
 export const createOvertimeRequest = (payload: OvertimeRequestForm) =>
   createModuleRequest(overtimeConfig, {
@@ -13,7 +13,7 @@ export const createOvertimeRequest = (payload: OvertimeRequestForm) =>
     amount: payload.hours,
   })
 
-export const listTravelRequests = () => listModuleRequests(travelConfig, { $orderby: 'createdAt desc' })
+export const listTravelRequests = () => listModuleRequests(travelConfig)
 
 export const createTravelRequest = (payload: TravelRequestForm) =>
   createModuleRequest(travelConfig, {
