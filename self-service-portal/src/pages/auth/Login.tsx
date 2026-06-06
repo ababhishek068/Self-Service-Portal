@@ -1,26 +1,63 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Navigate } from 'react-router-dom'
+import { SignInModeDialog } from '@/components/auth/SignInModeDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { signInModeOptions, type SignInMode } from '@/config/signInModes'
 import { useAuth } from '@/hooks/useAuth'
 import { brand } from '@/config/brand'
+
+const SIGN_IN_MODE_KEY = 'ssp.signInMode'
 
 export function Login() {
   const { isAuthenticated, login, submitting, error } = useAuth()
   const [employeeNo, setEmployeeNo] = useState('')
   const [password, setPassword] = useState('')
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [selectedMode, setSelectedMode] = useState<SignInMode>(() => {
+    try {
+      const stored = sessionStorage.getItem(SIGN_IN_MODE_KEY) as SignInMode | null
+      return stored && signInModeOptions.some((option) => option.id === stored) ? stored : 'application'
+    } catch {
+      return 'application'
+    }
+  })
+
+  useEffect(() => {
+    if (!dialogOpen) return
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !submitting) setDialogOpen(false)
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [dialogOpen, submitting])
 
   if (isAuthenticated) return <Navigate to="/" replace />
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault()
+  const runSignIn = async (mode: SignInMode) => {
+    setSelectedMode(mode)
+    try {
+      sessionStorage.setItem(SIGN_IN_MODE_KEY, mode)
+    } catch {
+      /* ignore */
+    }
+    setDialogOpen(false)
     try {
       await login(employeeNo, password)
     } catch {
       // The auth context already stored the error; nothing else to do here.
     }
   }
+
+  const handleFormSubmit = (event: React.FormEvent) => {
+    event.preventDefault()
+    if (!employeeNo.trim() || !password) return
+    setDialogOpen(true)
+  }
+
+  const selectedLabel =
+    signInModeOptions.find((option) => option.id === selectedMode)?.label ?? signInModeOptions[0].label
 
   return (
     <main className="portal-login-bg portal-safe-pt portal-safe-pb portal-safe-px relative flex min-h-screen flex-col items-center justify-center overflow-hidden px-4 py-6 sm:p-4">
@@ -44,7 +81,7 @@ export function Login() {
             Sign In
           </div>
           <div className="p-4 sm:p-6">
-            <form className="space-y-4" onSubmit={handleSubmit}>
+            <form className="space-y-4" onSubmit={handleFormSubmit}>
               {error ? (
                 <div className="rounded border-l-4 border-red-500 bg-red-50 px-3 py-2 text-sm text-red-700">
                   {error}
@@ -74,6 +111,7 @@ export function Login() {
                   required
                 />
               </div>
+
               <Button
                 type="submit"
                 variant="accent"
@@ -82,6 +120,10 @@ export function Login() {
               >
                 {submitting ? 'Signing in…' : 'Sign in'}
               </Button>
+
+              {selectedMode !== 'application' ? (
+                <p className="text-center text-[11px] text-slate-500">Last selected: {selectedLabel}</p>
+              ) : null}
             </form>
           </div>
         </div>
@@ -90,6 +132,13 @@ export function Login() {
           © {new Date().getFullYear()} {brand.company}. All rights reserved.
         </p>
       </div>
+
+      <SignInModeDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onSelect={(mode) => void runSignIn(mode)}
+        disabled={submitting}
+      />
     </main>
   )
 }
