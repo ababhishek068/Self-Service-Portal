@@ -14,8 +14,11 @@ import {
   Sparkles,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
+import { getToken } from '@/api/client/authClient'
+import { BACKEND_NOT_CONFIGURED } from '@/api/requireBackend'
 import { getDashboardSummary } from '@/api/endpoints/employee'
 import { PageWrapper } from '@/components/layout/PageWrapper'
+import { env } from '@/config/env'
 import { DataTable, type DataTableColumn } from '@/components/shared/DataTable'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -118,13 +121,26 @@ const tiles: DashboardTile[] = [
 ]
 
 export function Dashboard() {
-  const { employee } = useAuth()
+  const { employee, isAuthenticated, bootstrapped } = useAuth()
   const { has, canApprove, primaryRoleLabel, capabilitySummary, quickLinks } = usePermissions()
-  const summary = useQuery({ queryKey: ['dashboard'], queryFn: getDashboardSummary })
+  const canFetchSummary =
+    bootstrapped && isAuthenticated && Boolean(env.AUTH_API_URL) && Boolean(getToken())
+  const summary = useQuery({
+    queryKey: ['dashboard'],
+    queryFn: getDashboardSummary,
+    enabled: canFetchSummary,
+  })
   const firstName = employee?.displayName?.split(' ')[0] ?? 'there'
-  const data = (summary.data ?? {}) as Record<string, number | undefined>
+  const data = summary.data ?? null
+  const tileValues = (data ?? {}) as Record<string, number | undefined>
+  const summaryError =
+    summary.error instanceof Error
+      ? summary.error.message
+      : !env.AUTH_API_URL
+        ? BACKEND_NOT_CONFIGURED
+        : null
   const visibleTiles = tiles.filter((tile) => !tile.roles || has(tile.roles))
-  const pendingCount = data.pendingApprovals ?? 0
+  const pendingCount = tileValues.pendingApprovals ?? 0
 
   const activityColumns: DataTableColumn<PortalRequest>[] = [
     { id: 'requestNo', header: 'No.', cell: (row) => row.requestNo },
@@ -136,9 +152,29 @@ export function Dashboard() {
 
   return (
     <PageWrapper title="Dashboard">
-      {summary.isLoading ? (
+      {!canFetchSummary && bootstrapped ? (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
+          {!env.AUTH_API_URL
+            ? BACKEND_NOT_CONFIGURED
+            : 'Sign in again to load dashboard data from the server.'}
+        </div>
+      ) : null}
+
+      {summary.isError ? (
+        <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
+          <p className="font-semibold">Dashboard could not load</p>
+          <p className="mt-1">{summaryError ?? 'Request failed. Is the backend running?'}</p>
+          {env.AUTH_API_URL ? (
+            <p className="mt-2 text-xs text-red-700">
+              Expected API: <code className="rounded bg-red-100 px-1">{env.AUTH_API_URL}/api/dashboard/summary</code>
+            </p>
+          ) : null}
+        </div>
+      ) : null}
+
+      {summary.isLoading || (canFetchSummary && !summary.data && !summary.isError) ? (
         <Skeleton className="h-48 w-full" />
-      ) : (
+      ) : summary.data ? (
         <div className="space-y-6">
           <div className="portal-welcome animate-page-in-subtle flex items-center justify-between gap-4 p-4 sm:p-5">
             <div className="min-w-0">
@@ -207,7 +243,7 @@ export function Dashboard() {
           <div className="portal-stagger grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
             {visibleTiles.map((tile) => {
               const Icon = tile.icon
-              const value = data[tile.id] ?? 0
+              const value = tileValues[tile.id] ?? 0
               return (
                 <Link
                   key={tile.id}
@@ -241,7 +277,7 @@ export function Dashboard() {
             />
           </div>
         </div>
-      )}
+      ) : null}
     </PageWrapper>
   )
 }
