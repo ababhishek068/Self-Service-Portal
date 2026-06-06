@@ -7,10 +7,23 @@ import { disconnect } from '../src/client.js'
  * Create (or update) a single portal user directly in the database.
  *
  * Usage:
- *   npm run create-user -- --staffNo HB-00123 --name "Jane Doe" --password "Secret@123"
+ *   npm run create-user -- --staffNo EMP-00123 --name "Jane Doe" --password "Secret@123"
  *
  * Optional flags:
+ *   --roles staff,lineManager,hod
  *   --department FIN
+ *   --department-name Finance
+ *   --email jane@example.com
+ *   --branch-code HO
+ *   --branch-name "Head Office"
+ *   --job-title "Finance Officer"
+ *   --job-grade G6
+ *   --place-of-duty "Head Office"
+ *   --account-number 1000000001
+ *   --manager EMP-01002
+ *   --leave-balance 16
+ *   --responsible-center HO-FIN
+ *   --permission-departments FIN,BO
  *   --phone 0911000000
  *   --gender Female
  *   --ceo            (grant CEO function access)
@@ -25,7 +38,20 @@ const { values } = parseArgs({
     name: { type: 'string' },
     lastName: { type: 'string' },
     password: { type: 'string' },
+    roles: { type: 'string' },
+    email: { type: 'string' },
     department: { type: 'string' },
+    'department-name': { type: 'string' },
+    'branch-code': { type: 'string' },
+    'branch-name': { type: 'string' },
+    'job-title': { type: 'string' },
+    'job-grade': { type: 'string' },
+    'place-of-duty': { type: 'string' },
+    'account-number': { type: 'string' },
+    manager: { type: 'string' },
+    'leave-balance': { type: 'string' },
+    'responsible-center': { type: 'string' },
+    'permission-departments': { type: 'string' },
     phone: { type: 'string' },
     gender: { type: 'string' },
     status: { type: 'string' },
@@ -38,7 +64,7 @@ const { values } = parseArgs({
 
 function fail(message) {
   console.error(`Error: ${message}\n`)
-  console.error('Usage: npm run create-user -- --staffNo HB-00123 --name "Jane Doe" --password "Secret@123" [--department FIN] [--ceo] [--hod]')
+  console.error('Usage: npm run create-user -- --staffNo EMP-00123 --name "Jane Doe" --password "Secret@123" [--department FIN] [--ceo] [--hod]')
   process.exit(1)
 }
 
@@ -64,7 +90,22 @@ async function run() {
     employeeNo: values.staffNo,
     name: firstName,
     lastName,
+    roles: values.roles ? values.roles.split(',').map((item) => item.trim()).filter(Boolean) : ['staff'],
+    email: values.email ?? '',
     department: values.department ?? '',
+    departmentName: values['department-name'] ?? '',
+    branchCode: values['branch-code'] ?? '',
+    branchName: values['branch-name'] ?? '',
+    jobTitle: values['job-title'] ?? '',
+    jobGrade: values['job-grade'] ?? '',
+    placeOfDuty: values['place-of-duty'] ?? '',
+    accountNumber: values['account-number'] ?? '',
+    managerEmployeeNo: values.manager ?? '',
+    leaveBalance: Number(values['leave-balance'] ?? 0),
+    responsibleCenter: values['responsible-center'] ?? '',
+    permissionDepartments: values['permission-departments']
+      ? values['permission-departments'].split(',').map((item) => item.trim()).filter(Boolean)
+      : [],
     phoneNumber: values.phone ?? '',
     gender: values.gender ?? '',
     passwordHash,

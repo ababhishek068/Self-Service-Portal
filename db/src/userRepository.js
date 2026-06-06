@@ -1,5 +1,21 @@
 import { getPrisma } from './client.js'
 
+function parseCsv(value) {
+  if (!value) return []
+  return String(value)
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean)
+}
+
+function stringifyCsv(value) {
+  if (!Array.isArray(value)) return ''
+  return value
+    .map((item) => String(item).trim())
+    .filter(Boolean)
+    .join(',')
+}
+
 /**
  * Map a Prisma `User` row to the public `DbUser` shape consumed by the backend.
  * Notably normalises `hod`/`ceo` → `HOD`/`CEO` and dates → ISO strings, so the
@@ -10,7 +26,20 @@ function toDbUser(row) {
     employeeNo: row.employeeNo,
     name: row.name,
     lastName: row.lastName,
+    roles: parseCsv(row.roles),
+    email: row.email,
     department: row.department,
+    departmentName: row.departmentName,
+    branchCode: row.branchCode,
+    branchName: row.branchName,
+    jobTitle: row.jobTitle,
+    jobGrade: row.jobGrade,
+    placeOfDuty: row.placeOfDuty,
+    accountNumber: row.accountNumber,
+    managerEmployeeNo: row.managerEmployeeNo,
+    leaveBalance: row.leaveBalance,
+    responsibleCenter: row.responsibleCenter,
+    permissionDepartments: parseCsv(row.permissionDepartments),
     phoneNumber: row.phoneNumber,
     gender: row.gender,
     passwordHash: row.passwordHash,
@@ -37,7 +66,20 @@ export async function upsertUser(input) {
   const data = {
     name: input.name,
     lastName: input.lastName ?? '',
+    roles: stringifyCsv(input.roles),
+    email: input.email ?? '',
     department: input.department ?? '',
+    departmentName: input.departmentName ?? '',
+    branchCode: input.branchCode ?? '',
+    branchName: input.branchName ?? '',
+    jobTitle: input.jobTitle ?? '',
+    jobGrade: input.jobGrade ?? '',
+    placeOfDuty: input.placeOfDuty ?? '',
+    accountNumber: input.accountNumber ?? '',
+    managerEmployeeNo: input.managerEmployeeNo ?? '',
+    leaveBalance: Number(input.leaveBalance ?? 0),
+    responsibleCenter: input.responsibleCenter ?? '',
+    permissionDepartments: stringifyCsv(input.permissionDepartments),
     phoneNumber: input.phoneNumber ?? '',
     gender: input.gender ?? '',
     passwordHash: input.passwordHash,

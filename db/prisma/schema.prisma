@@ -6,7 +6,7 @@
 //   npm run migrate:deploy  # apply migrations in production
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
   // "native" → your laptop; "rhel-openssl-3.0.x" → Vercel's serverless runtime.
   binaryTargets = ["native", "rhel-openssl-3.0.x"]
 }
@@ -19,20 +19,171 @@ datasource db {
 /// Application users for "our backend" login (way #2).
 /// Passwords are stored only as bcrypt hashes — never plaintext.
 model User {
-  id                 Int      @id @default(autoincrement())
-  employeeNo         String   @unique @map("employee_no")
-  name               String
-  lastName           String   @default("") @map("last_name")
-  department         String   @default("")
-  phoneNumber        String   @default("") @map("phone_number")
-  gender             String   @default("")
-  passwordHash       String   @map("password_hash")
-  status             String   @default("Active") // Active | Inactive | Blocked
-  hod                Boolean  @default(false)
-  ceo                Boolean  @default(false)
-  mustChangePassword Boolean  @default(false) @map("must_change_password")
-  createdAt          DateTime @default(now()) @map("created_at")
-  updatedAt          DateTime @updatedAt @map("updated_at")
+  id                    Int      @id @default(autoincrement())
+  employeeNo            String   @unique @map("employee_no")
+  name                  String
+  lastName              String   @default("") @map("last_name")
+  roles                 String   @default("")
+  email                 String   @default("")
+  department            String   @default("")
+  departmentName        String   @default("") @map("department_name")
+  branchCode            String   @default("") @map("branch_code")
+  branchName            String   @default("") @map("branch_name")
+  jobTitle              String   @default("") @map("job_title")
+  jobGrade              String   @default("") @map("job_grade")
+  placeOfDuty           String   @default("") @map("place_of_duty")
+  accountNumber         String   @default("") @map("account_number")
+  managerEmployeeNo     String   @default("") @map("manager_employee_no")
+  leaveBalance          Int      @default(0) @map("leave_balance")
+  responsibleCenter     String   @default("") @map("responsible_center")
+  permissionDepartments String   @default("") @map("permission_departments")
+  phoneNumber           String   @default("") @map("phone_number")
+  gender                String   @default("")
+  passwordHash          String   @map("password_hash")
+  status                String   @default("Active") // Active | Inactive | Blocked
+  hod                   Boolean  @default(false)
+  ceo                   Boolean  @default(false)
+  mustChangePassword    Boolean  @default(false) @map("must_change_password")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
 
   @@map("users")
+}
+
+/// Generic workflow/request store for all self-service screens.
+/// Screen-specific form data is retained in `payload`; common workflow fields
+/// are columns so dashboards, approvals, and reports can query efficiently.
+model PortalRequest {
+  id                   String    @id @default(cuid())
+  requestNo            String    @unique @map("request_no")
+  requestType          String    @map("request_type")
+  title                String
+  status               String    @default("Draft")
+  makerEmployeeNo      String    @map("maker_employee_no")
+  makerName            String    @map("maker_name")
+  departmentCode       String    @default("") @map("department_code")
+  departmentName       String    @default("") @map("department_name")
+  responsibleCenter    String    @default("") @map("responsible_center")
+  amount               Float     @default(0)
+  sourceDocumentNo     String    @map("source_document_no")
+  sourceDocumentEntity String    @map("source_document_entity")
+  submittedAt          DateTime? @map("submitted_at")
+  approverEmployeeNo   String?   @map("approver_employee_no")
+  approverName         String?   @map("approver_name")
+  payload              Json
+  attachments          Json
+  approvalSteps        Json      @map("approval_steps")
+  auditTrail           Json      @map("audit_trail")
+  createdAt            DateTime  @default(now()) @map("created_at")
+  updatedAt            DateTime  @updatedAt @map("updated_at")
+
+  @@index([requestType])
+  @@index([status])
+  @@index([makerEmployeeNo])
+  @@index([approverEmployeeNo])
+  @@map("portal_requests")
+}
+
+/// Employee attendance sign-in/sign-out records.
+model AttendanceRecord {
+  id                String   @id @default(cuid())
+  employeeNo        String   @map("employee_no")
+  staffName         String   @map("staff_name")
+  date              String
+  timeIn            String   @map("time_in")
+  timeOut           String?  @map("time_out")
+  hoursWorked       String?  @map("hours_worked")
+  location          String   @default("")
+  comments          String   @default("")
+  departmentCode    String   @default("") @map("department_code")
+  departmentName    String   @default("") @map("department_name")
+  managerEmployeeNo String   @default("") @map("manager_employee_no")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@index([employeeNo])
+  @@index([date])
+  @@index([departmentCode])
+  @@map("attendance_records")
+}
+
+/// Payroll lines used by the Payslip screen and CEO Master Roll report.
+model PayrollSlip {
+  id              String   @id @default(cuid())
+  employeeNo      String   @map("employee_no")
+  employeeName    String   @map("employee_name")
+  departmentCode  String   @default("") @map("department_code")
+  departmentName  String   @default("") @map("department_name")
+  year            Int
+  month           String
+  grossPay        Float    @default(0) @map("gross_pay")
+  totalDeductions Float    @default(0) @map("total_deductions")
+  netPay          Float    @default(0) @map("net_pay")
+  lines           Json
+  generatedAt     DateTime @default(now()) @map("generated_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  @@unique([employeeNo, year, month])
+  @@index([year, month])
+  @@index([departmentCode])
+  @@map("payroll_slips")
+}
+
+/// HR downloadable documents shown in the HR Downloads screen.
+model PolicyDocument {
+  id        String   @id
+  title     String
+  category  String
+  updatedOn String   @default("") @map("updated_on")
+  fileName  String   @map("file_name")
+  mimeType  String   @default("text/plain") @map("mime_type")
+  content   String   @db.LongText
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@index([category])
+  @@map("policy_documents")
+}
+
+/// Performance review rows shown in the Performance List screen.
+model PerformanceReview {
+  id                   String   @id @default(cuid())
+  employeeNo           String   @map("employee_no")
+  employeeName         String   @map("employee_name")
+  period               String
+  supervisorEmployeeNo String   @default("") @map("supervisor_employee_no")
+  supervisorName       String   @default("") @map("supervisor_name")
+  departmentCode       String   @default("") @map("department_code")
+  departmentName       String   @default("") @map("department_name")
+  status               String   @default("Open")
+  createdAt            DateTime @default(now()) @map("created_at")
+  updatedAt            DateTime @updatedAt @map("updated_at")
+
+  @@unique([employeeNo, period])
+  @@index([departmentCode])
+  @@map("performance_reviews")
+}
+
+/// Extended employee profile tabs shown on the Profile screen.
+model EmployeeProfile {
+  id                String   @id @default(cuid())
+  employeeNo        String   @unique @map("employee_no")
+  sector            String   @default("")
+  division          String   @default("")
+  district          String   @default("")
+  maritalStatus     String   @default("") @map("marital_status")
+  employmentType    String   @default("") @map("employment_type")
+  dateOfJoin        String   @default("") @map("date_of_join")
+  contractStartDate String   @default("") @map("contract_start_date")
+  contractEndDate   String   @default("") @map("contract_end_date")
+  probationEndDate  String   @default("") @map("probation_end_date")
+  nextOfKin         Json     @map("next_of_kin")
+  employmentHistory Json     @map("employment_history")
+  qualifications    Json
+  assignedAssets    Json     @map("assigned_assets")
+  createdAt         DateTime @default(now()) @map("created_at")
+  updatedAt         DateTime @updatedAt @map("updated_at")
+
+  @@map("employee_profiles")
 }

@@ -1,53 +1,32 @@
-import { useState } from 'react'
-import { Link } from 'react-router-dom'
-import { PageWrapper } from '@/components/layout/PageWrapper'
-import { DataTable, type DataTableColumn } from '@/components/shared/DataTable'
-import { PortalNewButton } from '@/components/shared/PortalNewButton'
-import { StatusBadge } from '@/components/shared/StatusBadge'
-import { Button } from '@/components/ui/button'
+import { formatISO } from 'date-fns'
+import { createSalaryAdvanceRequest, listSalaryAdvanceRequests } from '@/api/endpoints/salaryAdvance'
+import { RequestFormPage } from '@/components/shared/RequestFormPage'
+import { salaryAdvanceSchema, type SalaryAdvanceForm } from '@/schemas/requestSchemas'
 
-interface SalaryAdvanceRow {
-  id: string
-  no: string
-  date: string
-  reason: string
-  status: string
-  highlight?: boolean
-}
-
-const mockRows: SalaryAdvanceRow[] = [
-  { id: '1', no: 'A00290', date: '2025-12-10', reason: 'Testing', status: 'Posted' },
-  { id: '2', no: 'A00459', date: '2025-12-15', reason: 'trvel', status: 'Pending Approval', highlight: true },
-  { id: '3', no: 'A00235', date: '2025-12-18', reason: '', status: 'Cancelled' },
-]
+const today = formatISO(new Date(), { representation: 'date' })
 
 export function SalaryAdvance() {
-  const [rows] = useState(mockRows)
-  const [selectedId, setSelectedId] = useState<string | null>('2')
-
-  const columns: DataTableColumn<SalaryAdvanceRow>[] = [
-    {
-      id: 'no',
-      header: 'No.',
-      cell: (row) => (
-        <Link to={`/hr/salary-advance/${row.no}`} className="text-[var(--portal-navy)] underline" onClick={() => setSelectedId(row.id)}>
-          {row.no}
-        </Link>
-      ),
-    },
-    { id: 'date', header: 'Date', cell: (row) => row.date },
-    { id: 'reason', header: 'Reason', cell: (row) => row.reason || '—' },
-    { id: 'status', header: 'Status', cell: (row) => <StatusBadge status={row.status} /> },
-  ]
-
   return (
-    <PageWrapper title="Salary Advance" actions={<PortalNewButton label="New Request" />}>
-      <DataTable rows={rows} columns={columns} getRowId={(row) => row.id} selectedRowId={selectedId ?? undefined} />
-      <p className="mt-4 text-center">
-        <Button type="button" variant="outline" size="sm" asChild>
-          <Link to="/hr/salary-advance/A00235">View request details</Link>
-        </Button>
-      </p>
-    </PageWrapper>
+    <RequestFormPage
+      title="Salary Advance"
+      description="Request an advance against salary with repayment schedule and approval workflow."
+      schema={salaryAdvanceSchema}
+      queryKey={['hr', 'salary-advance']}
+      listRequests={listSalaryAdvanceRequests}
+      createRequest={(values) => createSalaryAdvanceRequest(values as SalaryAdvanceForm)}
+      moduleConfig={{ module: 'salaryAdvance', entity: 'selfServiceSalaryAdvanceRequests' }}
+      defaultValues={{ requestDate: today, amount: 0, reason: '', repaymentMonths: 3 }}
+      fields={[
+        { name: 'requestDate', label: 'Request date', type: 'date' },
+        { name: 'amount', label: 'Advance amount', type: 'number' },
+        { name: 'repaymentMonths', label: 'Repayment period (months)', type: 'number' },
+        { name: 'reason', label: 'Reason', type: 'textarea', placeholder: 'State the reason for the advance' },
+      ]}
+      businessRules={[
+        'Request date must equal the ERP working date.',
+        'Advance routes through payroll approval workflow.',
+        'Repayment is deducted over the selected months.',
+      ]}
+    />
   )
 }

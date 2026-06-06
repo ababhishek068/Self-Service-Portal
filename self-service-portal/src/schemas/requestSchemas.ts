@@ -1,5 +1,6 @@
 import { differenceInCalendarDays, isBefore, isSameDay, parseISO } from 'date-fns'
 import { z } from 'zod'
+import { isErpWorkingDate } from '@/utils/validators'
 
 const today = () => new Date()
 const isValidDateString = (value: string) => {
@@ -8,6 +9,11 @@ const isValidDateString = (value: string) => {
 }
 
 const dateField = z.string().min(1, 'Date is required').refine(isValidDateString, 'Use a valid date')
+const workingDateField = dateField.refine(
+  (value) => isErpWorkingDate(value),
+  'Date must equal the ERP working date (no backdating or future-dating)',
+)
+const faTagPattern = /^FA\/[A-Z0-9]+\/[A-Z0-9]+\/[A-Z0-9]+\/\d{3,5}\/\d{4}$/
 const moneyField = z.coerce.number().positive('Amount must be greater than zero')
 const quantityField = z.coerce.number().positive('Quantity must be greater than zero')
 const optionalText = z.string().optional().default('')
@@ -45,6 +51,13 @@ export const imprestRequestSchema = z
     submit: z.boolean().default(true),
   })
   .superRefine((data, ctx) => {
+    if (!isErpWorkingDate(data.startDate)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['startDate'],
+        message: 'Start date must equal the ERP working date',
+      })
+    }
     if (isBefore(parseISO(data.returnDate), parseISO(data.startDate))) {
       ctx.addIssue({
         code: 'custom',
@@ -67,7 +80,7 @@ export const imprestSurrenderSchema = z.object({
 export const staffClaimSchema = z
   .object({
     claimType: z.enum(['Per Diem & Accommodation', 'Medical', 'Other']),
-    claimDate: dateField,
+    claimDate: workingDateField,
     departmentCode: z.string().min(1, 'Department is required'),
     jobGrade: z.string().min(1, 'Job grade is required'),
     placeOfDuty: z.string().min(2, 'Place of duty is required'),
@@ -100,7 +113,7 @@ export const staffClaimSchema = z
 export const pettyCashSchema = z.object({
   activity: z.enum(['Request', 'Petty Cash Replenishment', 'Petty Cash Settlement']),
   departmentCode: z.string().min(1, 'Department is required'),
-  requestDate: dateField,
+  requestDate: workingDateField,
   amount: moneyField,
   limitAmount: moneyField,
   costCenter: z.string().min(2, 'Cost center is required'),
@@ -126,11 +139,11 @@ export const storeRequisitionLineSchema = z
         message: 'Insufficient stock blocks posting',
       })
     }
-    if (data.isFixedAsset && !/^HB\/[A-Z0-9]+\/[A-Z0-9]+\/[A-Z0-9]+\/\d{3,5}\/\d{4}$/.test(data.faTagNumber)) {
+    if (data.isFixedAsset && !faTagPattern.test(data.faTagNumber)) {
       ctx.addIssue({
         code: 'custom',
         path: ['faTagNumber'],
-        message: 'FA Tag must follow HB/{dept}/{category}/{item}/{seq}/{year}',
+        message: 'FA Tag must follow FA/{dept}/{category}/{item}/{seq}/{year}',
       })
     }
   })
@@ -178,8 +191,16 @@ export const transportRequestSchema = z
   .object({
     transportType: z.enum(['City', 'Field']),
     tripDate: dateField,
+    tripTime: z.string().min(1, 'Trip time is required'),
     destination: z.string().min(2, 'Destination is required'),
-    passengers: z.array(z.object({ name: z.string().min(2, 'Passenger name is required') })).min(1, 'Add at least one passenger'),
+    passengers: z
+      .array(
+        z.object({
+          name: z.string().min(2, 'Passenger name is required'),
+          passengerType: z.enum(['Internal', 'External']),
+        }),
+      )
+      .min(1, 'Add at least one passenger'),
     purpose: z.string().min(8, 'Purpose is required'),
   })
   .refine((data) => !isBefore(parseISO(data.tripDate), today()), {
@@ -187,9 +208,30 @@ export const transportRequestSchema = z
     message: 'Trip date cannot be backdated',
   })
 
+export const salaryAdvanceSchema = z.object({
+  requestDate: workingDateField,
+  amount: moneyField,
+  reason: z.string().min(8, 'Reason is required'),
+  repaymentMonths: z.coerce.number().min(1, 'Minimum 1 month').max(12, 'Maximum 12 months'),
+})
+
+export const trainingNeedsSchema = z.object({
+  trainingTitle: z.string().min(3, 'Training title is required'),
+  trainingPeriod: z.string().min(3, 'Training period is required'),
+  provider: z.string().min(2, 'Provider is required'),
+  estimatedCost: moneyField,
+  justification: z.string().min(10, 'Justification is required'),
+  groupName: optionalText,
+})
+
+export const documentRequisitionSchema = z.object({
+  documentType: z.string().min(2, 'Document type is required'),
+  purpose: z.string().min(10, 'Purpose must be at least 10 characters'),
+})
+
 export const maintenanceRequestSchema = z.object({
   requestDate: dateField,
-  faTagNumber: z.string().regex(/^HB\/[A-Z0-9]+\/[A-Z0-9]+\/[A-Z0-9]+\/\d{3,5}\/\d{4}$/, 'Use a valid HB FA tag number'),
+  faTagNumber: z.string().regex(faTagPattern, 'Use a valid FA tag number (FA/dept/category/item/seq/year)'),
   priority: z.enum(['Low', 'Medium', 'High', 'Critical']),
   location: z.string().min(2, 'Location is required'),
   issueDescription: z.string().min(10, 'Issue description is required'),
@@ -227,6 +269,16 @@ export const gatePassSchema = z
       ctx.addIssue({ code: 'custom', path: ['returnDate'], message: 'Return date is required for returnable gate pass' })
     }
   })
+
+export const vehicleTransferSchema = z.object({
+  vehicleNo: z.string().min(2, 'Vehicle number is required'),
+  fromDriver: z.string().min(2, 'Current driver is required'),
+  toDriver: z.string().min(2, 'Receiving driver is required'),
+  transferDate: dateField,
+  odometer: z.coerce.number().positive('Odometer reading is required'),
+  reason: z.string().min(8, 'Reason is required'),
+  attachments: z.array(attachmentSchema).default([]),
+})
 
 export const leaveRequestSchema = z
   .object({
@@ -285,10 +337,14 @@ export const requestSchemas = {
   transport: transportRequestSchema,
   maintenance: maintenanceRequestSchema,
   transferOrder: transferOrderSchema,
+  vehicleTransfer: vehicleTransferSchema,
   gatePass: gatePassSchema,
   leave: leaveRequestSchema,
   overtime: overtimeRequestSchema,
   travel: travelRequestSchema,
+  trainingNeeds: trainingNeedsSchema,
+  salaryAdvance: salaryAdvanceSchema,
+  documentRequisition: documentRequisitionSchema,
 }
 
 export type ImprestRequestForm = z.infer<typeof imprestRequestSchema>
@@ -301,7 +357,11 @@ export type FuelRequestForm = z.infer<typeof fuelRequestSchema>
 export type TransportRequestForm = z.infer<typeof transportRequestSchema>
 export type MaintenanceRequestForm = z.infer<typeof maintenanceRequestSchema>
 export type TransferOrderForm = z.infer<typeof transferOrderSchema>
+export type VehicleTransferForm = z.infer<typeof vehicleTransferSchema>
 export type GatePassForm = z.infer<typeof gatePassSchema>
 export type LeaveRequestForm = z.infer<typeof leaveRequestSchema>
 export type OvertimeRequestForm = z.infer<typeof overtimeRequestSchema>
 export type TravelRequestForm = z.infer<typeof travelRequestSchema>
+export type TrainingNeedsForm = z.infer<typeof trainingNeedsSchema>
+export type SalaryAdvanceForm = z.infer<typeof salaryAdvanceSchema>
+export type DocumentRequisitionForm = z.infer<typeof documentRequisitionSchema>

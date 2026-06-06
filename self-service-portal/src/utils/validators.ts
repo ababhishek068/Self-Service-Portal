@@ -14,7 +14,7 @@ export function buildFaTagNumber(
   year = new Date().getFullYear(),
 ) {
   const seq = String(sequence).padStart(4, '0')
-  return `HB/${departmentCode}/${categoryCode}/${itemCode}/${seq}/${year}`
+  return `FA/${departmentCode}/${categoryCode}/${itemCode}/${seq}/${year}`
 }
 
 export function isMakerAllowedToApprove(makerEmployeeNo: string, approverEmployeeNo: string) {

@@ -1,34 +1,29 @@
 import { useMemo } from 'react'
 import { navigationMenu, type NavItem } from '@/config/navigation'
+import { hasAnyRole, type PortalRole } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
 
 const UNDER_CONSTRUCTION_MESSAGE = '🚧 Feature under construction — coming soon!'
 
 /**
- * Filter the static navigation menu to only the items the current user is
- * allowed to see. Mirrors the `@if(session('authUser')['CEO'])` and
- * `@if(session('authUser')['HOD'] != null)` checks in the reference ESS
- * Laravel sidebar.
+ * Filter the static navigation menu down to the items the current user's roles
+ * allow. An item without a `roles` constraint is visible to everyone; an item
+ * with one is shown only when the user holds at least one of those roles.
  */
-function filterByRoles(items: NavItem[], { isCEO, isHOD }: { isCEO: boolean; isHOD: boolean }): NavItem[] {
+function filterByRoles(items: NavItem[], userRoles: PortalRole[]): NavItem[] {
   return items
-    .filter((item) => {
-      if (item.requiresRole === 'CEO' && !isCEO) return false
-      if (item.requiresRole === 'HOD' && !isHOD) return false
-      return true
-    })
+    .filter((item) => !item.roles || hasAnyRole(userRoles, item.roles))
     .map((item) =>
-      item.children ? { ...item, children: filterByRoles(item.children, { isCEO, isHOD }) } : item,
+      item.children ? { ...item, children: filterByRoles(item.children, userRoles) } : item,
     )
     .filter((item) => !item.children || item.children.length > 0)
 }
 
 export function useNavigation() {
   const { employee } = useAuth()
-  const isCEO = Boolean(employee?.isCEO)
-  const isHOD = Boolean(employee?.isHOD)
+  const userRoles = useMemo<PortalRole[]>(() => employee?.roles ?? [], [employee?.roles])
 
-  return useMemo(() => filterByRoles(navigationMenu, { isCEO, isHOD }), [isCEO, isHOD])
+  return useMemo(() => filterByRoles(navigationMenu, userRoles), [userRoles])
 }
 
 /**

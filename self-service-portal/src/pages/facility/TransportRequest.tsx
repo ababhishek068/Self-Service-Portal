@@ -15,7 +15,14 @@ export function TransportRequest() {
       listRequests={listTransportRequests}
       createRequest={(values) => createTransportRequest(values as TransportRequestForm)}
       source="ERP facility and procurement 21st.xlsx"
-      defaultValues={{ transportType: 'City', tripDate: today, destination: '', passengers: [''], purpose: '' }}
+      defaultValues={{
+        transportType: 'City',
+        tripDate: today,
+        tripTime: '09:00',
+        destination: '',
+        passengers: [{ name: '', passengerType: 'Internal' }],
+        purpose: '',
+      }}
       fields={[
         {
           name: 'transportType',
@@ -24,20 +31,34 @@ export function TransportRequest() {
           options: ['City', 'Field'].map((value) => ({ label: value, value })),
         },
         { name: 'tripDate', label: 'Trip date', type: 'date' },
+        { name: 'tripTime', label: 'Trip time', type: 'text', placeholder: 'HH:MM' },
         { name: 'destination', label: 'Destination', type: 'text' },
         {
           name: 'passengers',
-          label: 'Passenger list',
+          label: 'Passenger list (internal and external)',
           type: 'lineItems',
-          defaultLine: { name: '' },
-          fields: [{ name: 'name', label: 'Passenger name', type: 'text' }],
+          defaultLine: { name: '', passengerType: 'Internal' },
+          fields: [
+            { name: 'name', label: 'Passenger name', type: 'text' },
+            {
+              name: 'passengerType',
+              label: 'Type',
+              type: 'select',
+              options: [
+                { label: 'Internal', value: 'Internal' },
+                { label: 'External', value: 'External' },
+              ],
+            },
+          ],
         },
         { name: 'purpose', label: 'Purpose', type: 'textarea' },
       ]}
+      moduleConfig={{ module: 'transport', entity: 'selfServiceTransportRequests' }}
       businessRules={[
         'Trip date cannot be in the past.',
-        'Driver and vehicle availability are checked before approval.',
-        'Passenger list is retained with the source document.',
+        'Duplicate vehicle requests for the same day are blocked.',
+        'Passenger list (internal and external) is retained with the source document.',
+        'Line manager approval is required before dispatch.',
       ]}
     />
   )

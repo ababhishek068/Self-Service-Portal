@@ -1,3 +1,5 @@
+import type { PortalRole } from '@/config/roles'
+
 export const requestStatuses = [
   'Draft',
   'Pending Approval',
@@ -42,6 +44,10 @@ export interface Employee extends BusinessCentralEntity {
   leaveBalance: number
   responsibleCenter: string
   permissionDepartments: string[]
+  gender?: string
+  phoneNumber?: string
+  /** Normalized RBAC roles resolved from the backend on login. */
+  roles: PortalRole[]
   /** True when the employee can view the CEO function group (master roll, etc.) */
   isCEO?: boolean
   /** True when the employee leads a department (HOD function group). */
@@ -102,6 +108,8 @@ export interface BaseRequest extends BusinessCentralEntity {
   auditTrail: AuditTrailEntry[]
   approvalSteps: ApprovalStep[]
   attachments: Attachment[]
+  /** Raw form payload retained for list filtering and ERP replay. */
+  payload?: Record<string, unknown>
 }
 
 export interface ImprestLine {
@@ -250,7 +258,11 @@ export type PortalModuleKey =
   | 'transport'
   | 'maintenance'
   | 'transferOrder'
+  | 'vehicleTransfer'
   | 'gatePass'
   | 'leave'
   | 'overtime'
   | 'travel'
+  | 'salaryAdvance'
+  | 'training'
+  | 'documentRequisition'

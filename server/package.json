@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "type": "module",
-  "description": "Authentication & API backend for the Hijra Bank Self-Service Portal",
+  "description": "Authentication & API backend for the Technology Associates EA Limited Self-Service Portal",
   "main": "dist/index.js",
   "scripts": {
     "dev": "tsx watch src/index.ts",

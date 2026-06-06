@@ -39,6 +39,7 @@ export function GatePass() {
         { name: 'reason', label: 'Reason', type: 'textarea' },
         { name: 'attachments', label: 'Attachments', type: 'files' },
       ]}
+      moduleConfig={{ module: 'gatePass', entity: 'selfServiceGatePasses' }}
       businessRules={[
         'Returnable gate pass requires return date.',
         'Fixed asset movement links to asset register.',

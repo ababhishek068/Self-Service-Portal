@@ -7,7 +7,7 @@ backend (`../server`) imports it as `@ssp/db` and never touches Prisma directly.
 ```
 db/
 ├── prisma/
-│   ├── schema.prisma     ← tables (User model)
+│   ├── schema.prisma     ← tables (users, portal_requests, attendance_records)
 │   ├── migrations/       ← generated migration history
 │   └── seed.js           ← demo users
 ├── src/
@@ -37,6 +37,7 @@ cd db
 npm install                 # installs Prisma + generates the client (postinstall)
 cp .env.example .env         # Windows: copy .env.example .env
 #   → edit .env and set DATABASE_URL to your MySQL
+#   → cloud MySQL/TiDB URLs may include required SSL query params
 
 npm run migrate              # first time (dev): creates tables + migration files
 #   in production use:  npm run migrate:deploy
@@ -55,6 +56,18 @@ npm run seed                 # insert demo users (password: Password@123)
 | `npm run seed` | Insert/refresh demo users |
 | `npm run create-user -- …` | Create/update one real user (hashes the password) |
 
+## Tables
+
+| Table | Purpose |
+|-------|---------|
+| `users` | Login users, role flags, employee profile data, leave balance |
+| `portal_requests` | All request/form screens: finance, facility, HR, approvals, reports |
+| `attendance_records` | Attendance sign-in/sign-out records |
+
+Screen-specific form fields are stored in `portal_requests.payload`; workflow
+fields such as status, maker, approver, amount, module, and dates are normal
+columns for filtering and reporting.
+
 ## Creating users (the only way accounts are made)
 
 The portal has no signup screen — accounts are created in the database. Two
@@ -64,8 +77,12 @@ options:
 
 ```bash
 cd db
-npm run create-user -- --staffNo HB-00123 --name "Jane Doe" --password "Secret@123" --department FIN
-# flags: --ceo  --hod  --must-change  --status Active|Inactive|Blocked  --phone  --gender
+npm run create-user -- --staffNo EMP-00123 --name "Jane Doe" --password "Secret@123" --department FIN
+# flags: --roles staff,lineManager,hod  --ceo  --hod  --must-change
+#   --status Active|Inactive|Blocked  --phone  --gender
+# optional profile flags: --email  --department-name  --branch-code  --branch-name
+#   --job-title  --job-grade  --place-of-duty  --account-number  --manager
+#   --leave-balance  --responsible-center  --permission-departments
 ```
 
 Re-running with the same `--staffNo` updates that user (e.g. to reset a password).

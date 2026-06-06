@@ -26,38 +26,35 @@ const timestamp = () => formatISO(now())
 const delay = <T>(value: T, ms = 350) => new Promise<T>((resolve) => window.setTimeout(() => resolve(value), ms))
 
 export const currentEmployee: Employee = {
-  id: 'emp-hb-02418',
-  employeeNo: 'HB-02418',
-  displayName: 'Demo User',
-  email: '',
-  departmentCode: 'BO',
-  departmentName: 'Branch Operations',
+  id: 'emp-03245',
+  employeeNo: 'EMP-03245',
+  displayName: 'Staff User',
+  email: 'staff@example.com',
+  departmentCode: 'FAC',
+  departmentName: 'Facility Management',
   branchCode: 'HO',
   branchName: 'Head Office',
-  jobTitle: 'Senior Operations Officer',
-  jobGrade: 'G7',
+  jobTitle: 'Facility Officer',
+  jobGrade: 'G5',
   placeOfDuty: 'Head Office',
-  accountNumber: '1000459922',
-  managerEmployeeNo: 'HB-01002',
-  leaveBalance: 16,
-  responsibleCenter: 'HO-BO',
-  permissionDepartments: ['BO'],
-  isCEO: true,
-  isHOD: true,
+  accountNumber: '1000459924',
+  managerEmployeeNo: 'EMP-01002',
+  leaveBalance: 12,
+  responsibleCenter: 'HO-FAC',
+  permissionDepartments: ['FAC'],
+  gender: 'Male',
+  phoneNumber: '0911000003',
+  roles: ['staff'],
+  isCEO: false,
+  isHOD: false,
 }
 
 const checker = {
-  employeeNo: 'HB-01002',
+  employeeNo: 'EMP-01002',
   name: 'Approver',
 }
 
 let sequence = 24
-
-/**
- * No pre-seeded approvals — the queue and detail start empty. Requests created
- * through the app (mockCreateRequest) are appended here at runtime.
- */
-let mockRequests: PortalRequest[] = []
 
 function nextRequestNo(module: PortalModuleKey) {
   sequence += 1
@@ -73,6 +70,95 @@ function nextRequestNo(module: PortalModuleKey) {
 function statusFromSubmit(submit?: unknown): RequestStatus {
   return submit === false ? 'Draft' : 'Pending Approval'
 }
+
+function buildRequest(
+  module: PortalModuleKey,
+  opts: {
+    status: RequestStatus
+    maker?: Employee
+    approver?: { employeeNo: string; name: string }
+    amount?: number
+    title?: string
+    daysAgo?: number
+    payload?: Payload
+  },
+): PortalRequest {
+  const maker = opts.maker ?? currentEmployee
+  const approver = opts.approver ?? checker
+  const created = formatISO(new Date(Date.now() - (opts.daysAgo ?? 0) * 86_400_000))
+  const requestNo = nextRequestNo(module)
+  return {
+    id: `req-${crypto.randomUUID()}`,
+    requestNo,
+    requestType: module,
+    title: opts.title ?? moduleLabels[module],
+    status: opts.status,
+    makerEmployeeNo: maker.employeeNo,
+    makerName: maker.displayName,
+    departmentCode: maker.departmentCode,
+    departmentName: maker.departmentName,
+    responsibleCenter: maker.responsibleCenter,
+    amount: opts.amount ?? 0,
+    sourceDocument: { documentNo: requestNo, erpEntity: moduleLabels[module] },
+    createdAt: created,
+    submittedAt: opts.status !== 'Draft' ? created : undefined,
+    approverEmployeeNo: approver.employeeNo,
+    approverName: approver.name,
+    attachments: [],
+    approvalSteps: [
+      {
+        id: `step-${crypto.randomUUID()}`,
+        actorEmployeeNo: maker.employeeNo,
+        actorName: maker.displayName,
+        role: 'Maker',
+        status: opts.status === 'Draft' ? 'Draft' : 'Submitted',
+        timestamp: created,
+      },
+      {
+        id: `step-${crypto.randomUUID()}`,
+        actorEmployeeNo: approver.employeeNo,
+        actorName: approver.name,
+        role: 'Checker',
+        status: opts.status,
+        timestamp: created,
+      },
+    ],
+    auditTrail: [
+      {
+        id: `audit-${crypto.randomUUID()}`,
+        actorEmployeeNo: maker.employeeNo,
+        actorName: maker.displayName,
+        action: opts.status === 'Draft' ? 'Saved draft' : 'Submitted for approval',
+        timestamp: created,
+      },
+    ],
+    payload: opts.payload ?? {},
+  }
+}
+
+/** Demo seed so dashboard tiles and recent activity are populated on first load. */
+let mockRequests: PortalRequest[] = [
+  buildRequest('leave', { status: 'Pending Approval', title: 'Annual Leave — 3 days', amount: 0, daysAgo: 2 }),
+  buildRequest('imprest', { status: 'Approved', title: 'Imprest for field visit', amount: 15000, daysAgo: 5 }),
+  buildRequest('staffClaim', { status: 'Pending Approval', title: 'Medical claim — panel hospital', amount: 4200, daysAgo: 1 }),
+  buildRequest('storeRequisition', { status: 'Rejected', title: 'Store items — stationery', amount: 0, daysAgo: 7 }),
+  buildRequest('purchaseRequisition', {
+    status: 'Pending Approval',
+    title: 'Purchase — IT equipment',
+    amount: 85000,
+    daysAgo: 1,
+    maker: {
+      ...currentEmployee,
+      employeeNo: 'EMP-03245',
+      displayName: 'Staff Member',
+      departmentCode: 'FAC',
+      departmentName: 'Facility Management',
+    } as Employee,
+    approver: { employeeNo: currentEmployee.employeeNo, name: currentEmployee.displayName },
+  }),
+  buildRequest('imprestSurrender', { status: 'Approved', title: 'Surrender IMP-2026-00025', amount: 12000, daysAgo: 4 }),
+  buildRequest('transport', { status: 'Pending Approval', title: 'City transport — client meeting', amount: 0, daysAgo: 0 }),
+]
 
 export async function mockListRequests(module?: PortalModuleKey) {
   const rows = module ? mockRequests.filter((request) => request.requestType === module) : mockRequests
@@ -140,6 +226,39 @@ export async function mockCreateRequest(module: PortalModuleKey, payload: Payloa
   return delay(request)
 }
 
+export async function mockCancelRequest(id: string) {
+  const request = mockRequests.find((item) => item.id === id)
+  if (!request) throw new Error('Request was not found')
+  if (request.makerEmployeeNo !== currentEmployee.employeeNo) {
+    throw new Error('Only the maker can cancel this request')
+  }
+  if (!['Draft', 'Pending Approval'].includes(request.status)) {
+    throw new Error('Only draft or pending requests can be cancelled')
+  }
+  request.status = 'Cancelled'
+  request.auditTrail.push({
+    id: `audit-${crypto.randomUUID()}`,
+    actorEmployeeNo: currentEmployee.employeeNo,
+    actorName: currentEmployee.displayName,
+    action: 'Cancelled',
+    timestamp: timestamp(),
+  })
+  return delay(request)
+}
+
+export async function mockDeleteRequest(id: string) {
+  const request = mockRequests.find((item) => item.id === id)
+  if (!request) throw new Error('Request was not found')
+  if (request.makerEmployeeNo !== currentEmployee.employeeNo) {
+    throw new Error('Only the maker can delete this request')
+  }
+  if (request.status !== 'Draft') {
+    throw new Error('Only draft requests can be deleted')
+  }
+  mockRequests = mockRequests.filter((item) => item.id !== id)
+  return delay({ ok: true })
+}
+
 export async function mockListApprovals(
   type: ApprovalListType = 'pending',
   employeeNo = currentEmployee.employeeNo,
@@ -201,28 +320,33 @@ export async function mockEmployee() {
 }
 
 export async function mockDashboard() {
-  const isFor = (type: string) => (request: (typeof mockRequests)[number]) => request.requestType === type
   const myEmpNo = currentEmployee.employeeNo
-  const totalApproved = mockRequests.filter((r) => r.status === 'Approved' || r.status === 'Posted').length
-  const totalRejected = mockRequests.filter((r) => r.status === 'Rejected').length
+  const mine = (request: PortalRequest) => request.makerEmployeeNo === myEmpNo
+  const countMine = (type: PortalModuleKey) =>
+    mockRequests.filter((request) => request.requestType === type && mine(request)).length
 
   return delay({
     pendingApprovals: mockRequests.filter(
       (request) => request.status === 'Pending Approval' && request.approverEmployeeNo === myEmpNo,
     ).length,
-    approvedDocuments: totalApproved,
-    rejectedDocuments: totalRejected,
-    leaveApplications: mockRequests.filter(isFor('leave')).length,
-    staffClaims: mockRequests.filter(isFor('staffClaim')).length,
-    imprestRequisitions: mockRequests.filter(isFor('imprest')).length,
-    imprestSurrenders: mockRequests.filter(isFor('imprestSurrender')).length,
-    purchaseRequisitions: mockRequests.filter(isFor('purchaseRequisition')).length,
-    storeRequisitions: mockRequests.filter(isFor('storeRequisition')).length,
-    /** kept for backwards compatibility with older callers */
+    approvedDocuments: mockRequests.filter(
+      (request) => mine(request) && (request.status === 'Approved' || request.status === 'Posted'),
+    ).length,
+    rejectedDocuments: mockRequests.filter((request) => mine(request) && request.status === 'Rejected').length,
+    leaveApplications: countMine('leave'),
+    staffClaims: countMine('staffClaim'),
+    imprestRequisitions: countMine('imprest'),
+    imprestSurrenders: countMine('imprestSurrender'),
+    purchaseRequisitions: countMine('purchaseRequisition'),
+    storeRequisitions: countMine('storeRequisition'),
     leaveBalance: currentEmployee.leaveBalance,
-    openRequests: mockRequests.filter((request) => ['Draft', 'Pending Approval'].includes(request.status)).length,
-    unresolved: mockRequests.filter((request) => ['Rejected', 'Cancelled'].includes(request.status)).length,
-    recentActivity: mockRequests.slice(0, 5),
+    openRequests: mockRequests.filter(
+      (request) => mine(request) && ['Draft', 'Pending Approval'].includes(request.status),
+    ).length,
+    unresolved: mockRequests.filter(
+      (request) => mine(request) && ['Rejected', 'Cancelled'].includes(request.status),
+    ).length,
+    recentActivity: [...mockRequests].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 8),
   })
 }
 
@@ -238,11 +362,11 @@ export async function mockReportRows(report: 'storeUsage' | 'leaveBalance' | 'ga
     ],
     leaveBalance: [
       { employeeNo: currentEmployee.employeeNo, name: currentEmployee.displayName, annualBalance: 16, used: 5, department: currentEmployee.departmentName },
-      { employeeNo: 'HB-03245', name: 'Staff Member', annualBalance: 12, used: 9, department: 'Facility Management' },
+      { employeeNo: 'EMP-03245', name: 'Staff Member', annualBalance: 12, used: 9, department: 'Facility Management' },
     ],
     gatePassLog: [
-      { gatePassNo: 'GP-000122', type: 'Returnable', assetTag: 'HB/BO/IT/FA112/0007/2026', destination: 'Bole Branch', returnDate: today(), status: 'Pending Approval' },
-      { gatePassNo: 'GP-000118', type: 'Non-Returnable', assetTag: 'HB/FAC/FF/FA220/0041/2026', destination: 'Warehouse', returnDate: '-', status: 'Approved' },
+      { gatePassNo: 'GP-000122', type: 'Returnable', assetTag: 'FA/BO/IT/FA112/0007/2026', destination: 'Branch Office', returnDate: today(), status: 'Pending Approval' },
+      { gatePassNo: 'GP-000118', type: 'Non-Returnable', assetTag: 'FA/FAC/FF/FA220/0041/2026', destination: 'Warehouse', returnDate: '-', status: 'Approved' },
     ],
   }
 

@@ -6,9 +6,22 @@ const bool = (value: string | boolean | undefined, fallback = false) => {
   return ['true', '1', 'yes', 'on'].includes(value.toLowerCase())
 }
 
+const authApiUrl = read('VITE_AUTH_API_URL')
+
+/**
+ * When a real auth API is configured we default to live data (USE_MOCK=false).
+ * Set VITE_USE_MOCK=true explicitly only if you need mock lists while still
+ * testing JWT login against the backend.
+ */
+function resolveUseMock(): boolean {
+  const raw = import.meta.env.VITE_USE_MOCK
+  if (raw === undefined || raw === '') return !authApiUrl
+  return bool(raw, !authApiUrl)
+}
+
 export const env = {
   /** Base URL of "our backend" (Node JWT API, e.g. http://localhost:4000). Empty = not configured (falls back to mock login). */
-  AUTH_API_URL: read('VITE_AUTH_API_URL'),
+  AUTH_API_URL: authApiUrl,
 
   /** Base URL of the Laravel ESS backend (e.g. http://192.168.224.37:81). Empty = same-origin. */
   ESS_API_URL: read('VITE_ESS_API_URL'),
@@ -22,7 +35,7 @@ export const env = {
   ERP_COMPANY_ID: read('VITE_ERP_COMPANY_ID'),
 
   APP_NAME: read('VITE_APP_NAME', 'Self Service Portal'),
-  USE_MOCK: bool(import.meta.env.VITE_USE_MOCK, true),
+  USE_MOCK: resolveUseMock(),
 } as const
 
 export type Env = typeof env

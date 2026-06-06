@@ -2,12 +2,17 @@ import { formatISO } from 'date-fns'
 import { createPurchaseRequisition, listPurchaseRequisitions } from '@/api/endpoints/purchaseRequisition'
 import { RequestFormPage } from '@/components/shared/RequestFormPage'
 import { departments } from '@/data/departments'
+import { useEmployeeDefaults } from '@/hooks/useEmployeeDefaults'
+import { useAuth } from '@/hooks/useAuth'
 import { purchaseRequisitionSchema, type PurchaseRequisitionForm } from '@/schemas/requestSchemas'
 
 const today = formatISO(new Date(), { representation: 'date' })
 const departmentOptions = departments.map((department) => ({ label: department.name, value: department.code }))
 
 export function PurchaseRequisition() {
+  const { departmentCode, responsibleCenter } = useEmployeeDefaults()
+  const { employee } = useAuth()
+
   return (
     <RequestFormPage
       title="Purchase Requisition"
@@ -19,8 +24,8 @@ export function PurchaseRequisition() {
       source="Facility requirements workbook"
       defaultValues={{
         requestDate: today,
-        departmentCode: 'BO',
-        responsibleCenter: 'HO-BO',
+        departmentCode,
+        responsibleCenter,
         reason: '',
         lines: [
           {
@@ -31,7 +36,7 @@ export function PurchaseRequisition() {
             brand: '',
             standard: '',
             specification: '',
-            stake: 'Branch Operations',
+            stake: employee?.departmentName ?? '',
             amount: 0,
           },
         ],
@@ -66,6 +71,7 @@ export function PurchaseRequisition() {
         },
         { name: 'attachments', label: 'Attachment', type: 'files' },
       ]}
+      moduleConfig={{ module: 'purchaseRequisition', entity: 'selfServicePurchaseRequisitions' }}
       businessRules={[
         'Duplicate purchase requests within 24 hours are blocked.',
         'Approval workflow supports cancel, reject, and amend.',

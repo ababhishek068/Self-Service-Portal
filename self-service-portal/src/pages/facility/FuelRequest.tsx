@@ -24,6 +24,7 @@ export function FuelRequest() {
         { name: 'odometer', label: 'Odometer', type: 'number' },
         { name: 'purpose', label: 'Purpose', type: 'textarea' },
       ]}
+      moduleConfig={{ module: 'fuelRequest', entity: 'selfServiceFuelRequests' }}
       businessRules={[
         'Fuel issue links to transport request or work ticket.',
         'Vehicle and odometer are mandatory for audit trail.',

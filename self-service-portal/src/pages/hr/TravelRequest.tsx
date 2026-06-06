@@ -24,6 +24,7 @@ export function TravelRequest() {
         { name: 'estimatedExpense', label: 'Estimated expense', type: 'number' },
         { name: 'createExpenseClaim', label: 'Create linked expense claim', type: 'checkbox' },
       ]}
+      moduleConfig={{ module: 'travel', entity: 'selfServiceTravelRequests' }}
       businessRules={[
         'Travel can create linked staff claim for expenses.',
         'Travel approval retains source document number.',

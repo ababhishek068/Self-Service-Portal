@@ -2,12 +2,15 @@ import { formatISO } from 'date-fns'
 import { createImprestRequest, listImprestRequests } from '@/api/endpoints/imprest'
 import { RequestFormPage } from '@/components/shared/RequestFormPage'
 import { departments } from '@/data/departments'
+import { useEmployeeDefaults } from '@/hooks/useEmployeeDefaults'
 import { imprestRequestSchema, type ImprestRequestForm } from '@/schemas/requestSchemas'
 
 const today = formatISO(new Date(), { representation: 'date' })
 const departmentOptions = departments.map((department) => ({ label: department.name, value: department.code }))
 
 export function ImprestRequest() {
+  const employeeDefaults = useEmployeeDefaults()
+
   return (
     <RequestFormPage
       title="Imprest Requisition"
@@ -21,11 +24,7 @@ export function ImprestRequest() {
         requisitionDate: today,
         startDate: today,
         returnDate: today,
-        departmentCode: 'BO',
-        jobGrade: 'G7',
-        placeOfDuty: 'Head Office',
-        employeeAccountNumber: '1000459922',
-        responsibleCenter: 'HO-BO',
+        ...employeeDefaults,
         purpose: '',
         lines: [{ expenseType: 'Per Diem', description: '', amount: 0 }],
         attachments: [],
@@ -58,6 +57,7 @@ export function ImprestRequest() {
         },
         { name: 'attachments', label: 'Attachments', type: 'files' },
       ]}
+      moduleConfig={{ module: 'imprest', entity: 'selfServiceImprestRequests' }}
       businessRules={[
         'Requisition date must equal the ERP working date.',
         'Backdating and future-dating are blocked before submission.',

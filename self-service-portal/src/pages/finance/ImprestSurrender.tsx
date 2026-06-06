@@ -32,6 +32,7 @@ export function ImprestSurrender() {
         { name: 'notes', label: 'Surrender notes', type: 'textarea' },
         { name: 'attachments', label: 'Settlement attachments', type: 'files' },
       ]}
+      moduleConfig={{ module: 'imprestSurrender', entity: 'selfServiceImprestSurrenders' }}
       businessRules={[
         'Partial surrender is allowed and outstanding balance remains visible.',
         'Supporting attachment is mandatory before settlement.',

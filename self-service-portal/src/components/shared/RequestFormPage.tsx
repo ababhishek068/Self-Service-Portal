@@ -22,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { DataTable, type DataTableColumn } from './DataTable'
 import { FileUpload } from './FileUpload'
 import { StatusBadge } from './StatusBadge'
+import { cancelModuleRequest, deleteModuleRequest, type EndpointConfig } from '@/api/endpoints/requestEndpoint'
 import { formatCurrency, formatDate } from '@/utils/formatters'
 import type { Attachment, PortalRequest } from '@/types/erp.types'
 
@@ -59,6 +60,8 @@ interface RequestFormPageProps {
   source?: string
   listOnly?: boolean
   newButtonLabel?: string
+  /** When set, list rows get Cancel / Delete actions wired to the mock/ERP backend. */
+  moduleConfig?: EndpointConfig
 }
 
 function getPathValue(source: unknown, path: string) {
@@ -125,12 +128,47 @@ export function RequestFormPage({
   queryKey,
   listRequests,
   createRequest,
+  businessRules,
   listOnly = false,
   newButtonLabel = 'New Request',
+  moduleConfig,
 }: RequestFormPageProps) {
   const queryClient = useQueryClient()
   const [showForm, setShowForm] = useState(false)
+  const [actionId, setActionId] = useState<string | null>(null)
   const requestsQuery = useQuery({ queryKey, queryFn: listRequests })
+
+  const refreshLists = async () => {
+    await queryClient.invalidateQueries({ queryKey })
+    await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    await queryClient.invalidateQueries({ queryKey: ['approvals'] })
+  }
+
+  const handleCancel = async (id: string) => {
+    if (!moduleConfig || !window.confirm('Cancel this request?')) return
+    setActionId(id)
+    try {
+      await cancelModuleRequest(moduleConfig, id)
+      await refreshLists()
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Cancel failed')
+    } finally {
+      setActionId(null)
+    }
+  }
+
+  const handleDelete = async (id: string) => {
+    if (!moduleConfig || !window.confirm('Delete this draft permanently?')) return
+    setActionId(id)
+    try {
+      await deleteModuleRequest(moduleConfig, id)
+      await refreshLists()
+    } catch (err: unknown) {
+      alert(err instanceof Error ? err.message : 'Delete failed')
+    } finally {
+      setActionId(null)
+    }
+  }
   const form = useForm<FieldValues>({
     resolver: zodResolver(schema) as Resolver<FieldValues>,
     defaultValues,
@@ -142,8 +180,7 @@ export function RequestFormPage({
     onSuccess: async () => {
       form.reset(defaultValues)
       setShowForm(false)
-      await queryClient.invalidateQueries({ queryKey })
-      await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+      await refreshLists()
     },
   })
 
@@ -214,6 +251,42 @@ export function RequestFormPage({
     { id: 'status', header: 'Status', cell: (row) => <StatusBadge status={row.status} /> },
     { id: 'title', header: 'Description', cell: (row) => row.title },
     { id: 'amount', header: 'Amount', cell: (row) => formatCurrency(row.amount) },
+    ...(moduleConfig
+      ? [
+          {
+            id: 'actions',
+            header: 'Actions',
+            cell: (row: PortalRequest) => (
+              <div className="flex gap-1">
+                {row.status === 'Draft' ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-red-600"
+                    disabled={actionId === row.id}
+                    onClick={() => handleDelete(row.id)}
+                  >
+                    Delete
+                  </Button>
+                ) : null}
+                {['Draft', 'Pending Approval'].includes(row.status) ? (
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-amber-700"
+                    disabled={actionId === row.id}
+                    onClick={() => handleCancel(row.id)}
+                  >
+                    Cancel
+                  </Button>
+                ) : null}
+              </div>
+            ),
+          } satisfies DataTableColumn<PortalRequest>,
+        ]
+      : []),
   ]
 
   if (showForm && !listOnly) {
@@ -231,6 +304,16 @@ export function RequestFormPage({
               )}
             </div>
             {description ? <p className="text-sm text-slate-600">{description}</p> : null}
+            {businessRules?.length ? (
+              <div className="rounded-md border border-blue-200 bg-blue-50 p-3 text-sm text-blue-900">
+                <p className="font-semibold">Business rules</p>
+                <ul className="mt-1 list-inside list-disc space-y-0.5 text-blue-800">
+                  {businessRules.map((rule) => (
+                    <li key={rule}>{rule}</li>
+                  ))}
+                </ul>
+              </div>
+            ) : null}
             {mutation.error ? (
               <div className="flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">
                 <AlertCircle className="mt-0.5 h-4 w-4" />

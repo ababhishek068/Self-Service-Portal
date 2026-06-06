@@ -9,7 +9,21 @@ export interface AuthUser {
   employeeNo: string
   name: string
   displayName: string
+  roles?: string[]
+  role?: string
+  email?: string
   department: string
+  departmentName?: string
+  branchCode?: string
+  branchName?: string
+  jobTitle?: string
+  jobGrade?: string
+  placeOfDuty?: string
+  accountNumber?: string
+  managerEmployeeNo?: string
+  leaveBalance?: number
+  responsibleCenter?: string
+  permissionDepartments?: string[]
   phoneNumber: string
   gender: string
   userCategory: 'staff' | 'farmer'
@@ -23,7 +37,20 @@ export interface StoredUser {
   employeeNo: string
   name: string
   lastName: string
+  roles?: string[]
+  email?: string
   department: string
+  departmentName?: string
+  branchCode?: string
+  branchName?: string
+  jobTitle?: string
+  jobGrade?: string
+  placeOfDuty?: string
+  accountNumber?: string
+  managerEmployeeNo?: string
+  leaveBalance?: number
+  responsibleCenter?: string
+  permissionDepartments?: string[]
   phoneNumber: string
   gender: string
   passwordHash: string

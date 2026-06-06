@@ -23,6 +23,7 @@ export function OvertimeRequest() {
         { name: 'hours', label: 'Hours', type: 'number' },
         { name: 'reason', label: 'Reason', type: 'textarea' },
       ]}
+      moduleConfig={{ module: 'overtime', entity: 'selfServiceOvertimeRequests' }}
       businessRules={[
         'Overtime requests route to manager approval.',
         'Approved overtime can feed payroll-facing information.',

@@ -1,5 +1,12 @@
 import type { LucideIcon } from 'lucide-react'
 import {
+  erpConnectorRoles,
+  gatePassReportRoles,
+  leaveBalanceReportRoles,
+  storeUsageReportRoles,
+} from '@/config/roleAccess'
+import { approverRoles, type PortalRole } from '@/config/roles'
+import {
   BadgeCheck,
   Banknote,
   BarChart3,
@@ -18,6 +25,7 @@ import {
   Home,
   KeyRound,
   Landmark,
+  Link2,
   PackageCheck,
   Plane,
   ReceiptText,
@@ -37,14 +45,17 @@ export interface NavItem {
   children?: NavItem[]
   /** When true, the link shows a "coming soon" notice instead of routing */
   underConstruction?: boolean
-  /** When set, only render this item if the matching auth flag is true */
-  requiresRole?: 'CEO' | 'HOD'
+  /**
+   * When set, only render this item if the user holds at least one of these
+   * roles. Omit to make the item visible to every authenticated user.
+   */
+  roles?: PortalRole[]
 }
 
 /**
- * Navigation reflects the existing Hijra Bank ESS portal (Laravel) structure
- * deployed at C:\inetpub\wwwroot\ess. Order, labels and grouping are kept
- * in sync so users have the same mental model across both portals.
+ * Navigation reflects the ESS portal module structure. Order, labels and
+ * grouping are kept in sync with the ERP self-service scope so users have a
+ * consistent mental model across the system.
  */
 export const navigationMenu: NavItem[] = [
   { label: 'Dashboard', path: '/', icon: Gauge },
@@ -59,7 +70,7 @@ export const navigationMenu: NavItem[] = [
       { label: 'Training Request', path: '/hr/training-request', icon: FileText },
       { label: 'Payslip', path: '/hr/payslip', icon: Wallet },
       { label: 'Salary Advance', path: '/hr/salary-advance', icon: Banknote },
-      { label: 'Document Requisition', path: '/hr/document-requisition', icon: FileText, underConstruction: true },
+      { label: 'Document Requisition', path: '/hr/document-requisition', icon: FileText },
       { label: 'Overtime Request', path: '/hr/overtime-request', icon: Clock3 },
       { label: 'Travel Request', path: '/hr/travel-request', icon: Plane },
     ],
@@ -86,13 +97,14 @@ export const navigationMenu: NavItem[] = [
       { label: 'Work Tickets', path: '/facility/work-tickets', icon: Ticket },
       { label: 'Maintenance Request', path: '/facility/maintenance-request', icon: Wrench },
       { label: 'Transfer Orders', path: '/facility/transfer-order', icon: PackageCheck },
-      { label: 'Gate Pass', path: '/facility/gate-pass', icon: DoorOpen, underConstruction: true },
-      { label: 'Vehicle Transfer', path: '/facility/vehicle-transfer', icon: Car, underConstruction: true },
+      { label: 'Gate Pass', path: '/facility/gate-pass', icon: DoorOpen },
+      { label: 'Vehicle Transfer', path: '/facility/vehicle-transfer', icon: Car },
     ],
   },
   {
     label: 'Approvals',
     icon: ClipboardCheck,
+    roles: approverRoles,
     children: [
       { label: 'Pending Approval', path: '/approvals', icon: ClipboardCopy },
       { label: 'Approved Documents', path: '/approvals/approved', icon: ClipboardCheck },
@@ -102,13 +114,13 @@ export const navigationMenu: NavItem[] = [
   {
     label: 'CEO Function',
     icon: Crown,
-    requiresRole: 'CEO',
+    roles: ['ceo'],
     children: [{ label: 'Payroll Master Roll', path: '/ceo/master-roll', icon: UsersRound }],
   },
   {
     label: 'HOD Function',
     icon: UsersRound,
-    requiresRole: 'HOD',
+    roles: ['hod'],
     children: [
       { label: 'Department Staff', path: '/hod/team-requests', icon: UsersRound },
       { label: 'Staff on Leave', path: '/hod/staff-on-leave', icon: Plane },
@@ -119,9 +131,10 @@ export const navigationMenu: NavItem[] = [
     icon: CloudDownload,
     children: [
       { label: 'Document Downloads', path: '/downloads/documents', icon: FileText },
-      { label: 'Leave Balance Report', path: '/reports/leave-balance', icon: BarChart3 },
-      { label: 'Store Usage Report', path: '/reports/store-usage', icon: Store },
-      { label: 'Gate Pass Log', path: '/reports/gate-pass-log', icon: DoorOpen },
+      { label: 'Leave Balance Report', path: '/reports/leave-balance', icon: BarChart3, roles: leaveBalanceReportRoles },
+      { label: 'Store Usage Report', path: '/reports/store-usage', icon: Store, roles: storeUsageReportRoles },
+      { label: 'Gate Pass Log', path: '/reports/gate-pass-log', icon: DoorOpen, roles: gatePassReportRoles },
+      { label: 'ERP Connector', path: '/reports/erp-connector', icon: Link2, roles: erpConnectorRoles },
     ],
   },
   { label: 'Profile', path: '/profile', icon: UserRound },

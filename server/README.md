@@ -28,9 +28,14 @@ Demo accounts (all use password `Password@123`):
 
 | Staff No | Name | Roles |
 |----------|------|-------|
-| `HB-02418` | Admin User | CEO + HOD |
-| `HB-01002` | Manager User | HOD |
-| `HB-03245` | Staff User | — |
+| `EMP-02418` | Admin User | staff + HOD + ICT Admin + CEO |
+| `EMP-01002` | Manager User | staff + Line Manager + HOD |
+| `EMP-03245` | Staff User | staff |
+| `HB-00123` | Abhishek Behera | staff (`Secret@123` when seeded via `db/prisma/seed.js`) |
+
+After changing backend routes or the database schema, redeploy the `server/` app
+so production (e.g. Vercel) exposes the full `/api/*` portal surface — not just
+`/api/auth/*`.
 
 ---
 
@@ -43,6 +48,13 @@ Demo accounts (all use password `Password@123`):
 | GET  | `/api/auth/me` | Bearer | Current user from token |
 | POST | `/api/auth/logout` | Bearer | Symbolic (JWT is stateless) |
 | POST | `/api/auth/change-password` | Bearer | `{ currentPassword, newPassword }` |
+| GET/POST | `/api/requests` | Bearer | List/create all portal request modules |
+| POST/DELETE | `/api/requests/:id/*` | Bearer | Cancel/delete request drafts and pending requests |
+| GET/POST | `/api/approvals` | Bearer | Approval queue and approve/reject actions |
+| GET | `/api/dashboard/summary` | Bearer | Dashboard tiles and recent activity |
+| GET/POST | `/api/leave/*` | Bearer | Leave catalog, balances, dates, list, submit, cancel |
+| GET/POST | `/api/attendance/*` | Bearer | Attendance list, team attendance, sign-in, sign-out |
+| GET | `/api/reports/*` | Bearer | Store usage, leave balance, gate pass reports |
 
 Auth is a **JWT bearer token**: the client stores the token from `/login` and
 sends `Authorization: Bearer <token>` on subsequent requests.
@@ -56,6 +68,8 @@ See `.env.example` for the full list. Key values:
 - `AUTH_PROVIDER` — `local` (now) or `bc` (later)
 - `JWT_SECRET` — **must** be a long random string in production
 - `CORS_ORIGINS` — comma-separated list of the React app's URL(s)
+- `USER_STORE` — `db` for MySQL/Prisma, or `json` for a local file fallback
+- `DATABASE_URL` — required when `USER_STORE=db`
 - `USER_STORE_PATH` — where the JSON user store lives
 
 Generate a production secret:
@@ -79,10 +93,14 @@ reboot. Point the React app at it via `VITE_AUTH_API_URL`.
 
 ### Where users are stored
 
-The local provider keeps users in a JSON file (`data/users.json`) holding only
-**bcrypt password hashes** — never plaintext. This is intentionally the only
-place storage lives: to move to SQLite/Postgres later, replace
-`src/store/userStore.ts` with a DB-backed implementation; nothing else changes.
+The local provider uses `USER_STORE=db` with MySQL/Prisma when `DATABASE_URL`
+is configured. A JSON file fallback (`data/users.json`) is still available for
+offline demos by setting `USER_STORE=json`. Both stores hold only **bcrypt
+password hashes** — never plaintext.
+
+Request screens are stored in the MySQL `portal_requests` table. Attendance is
+stored in `attendance_records`. The backend exposes a generic request API so new
+frontend modules can persist without adding a new table for every form.
 
 ---
 

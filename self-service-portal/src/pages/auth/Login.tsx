@@ -5,13 +5,14 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useAuth } from '@/hooks/useAuth'
+import { brand } from '@/config/brand'
 
 export function Login() {
   const { isAuthenticated, login, submitting, error } = useAuth()
   // Prefill demo credentials only when no real auth backend is configured.
   const demoMode = !env.AUTH_API_URL
-  const [employeeNo, setEmployeeNo] = useState(demoMode ? 'HB-02418' : '')
-  const [password, setPassword] = useState(demoMode ? 'demo' : '')
+  const [employeeNo, setEmployeeNo] = useState(demoMode ? 'EMP-03245' : '')
+  const [password, setPassword] = useState(demoMode ? 'Password@123' : '')
 
   if (isAuthenticated) return <Navigate to="/" replace />
 
@@ -33,11 +34,11 @@ export function Login() {
       <div className="relative z-10 flex w-full max-w-md flex-col items-center">
         <div className="animate-page-in mb-6 text-center sm:mb-8">
           <div className="portal-logo-float mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-full bg-gradient-to-br from-blue-700 via-[var(--portal-navy)] to-[var(--portal-orange)] text-xl font-bold text-white shadow-xl ring-4 ring-white/60 sm:mb-4 sm:h-16 sm:w-16 sm:text-2xl">
-            H
+            {brand.monogram}
           </div>
-          <h1 className="portal-page-title text-xl font-bold sm:text-2xl">HIJRA BANK</h1>
+          <h1 className="portal-page-title text-xl font-bold uppercase sm:text-2xl">{brand.company}</h1>
           <p className="mt-1.5 text-base font-semibold tracking-wide text-[var(--portal-navy)] sm:mt-2 sm:text-lg">
-            SELF SERVICE PORTAL
+            {brand.product.toUpperCase()}
           </p>
         </div>
 
@@ -89,7 +90,7 @@ export function Login() {
         </div>
 
         <p className="mt-5 text-center text-[11px] text-slate-500 sm:mt-6 sm:text-xs">
-          © {new Date().getFullYear()} Hijra Bank. All rights reserved.
+          © {new Date().getFullYear()} {brand.company}. All rights reserved.
         </p>
       </div>
     </main>

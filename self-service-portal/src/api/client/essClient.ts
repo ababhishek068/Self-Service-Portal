@@ -2,7 +2,7 @@ import axios, { type AxiosError, type AxiosInstance, type AxiosRequestConfig } f
 import { env } from '@/config/env'
 
 /**
- * HTTP client for the Hijra Bank Laravel ESS backend.
+ * HTTP client for the Laravel ESS backend.
  *
  * The Laravel app uses session cookies for auth (see
  * `App\Http\Controllers\Auth\AuthenticatedSessionController`). In addition,

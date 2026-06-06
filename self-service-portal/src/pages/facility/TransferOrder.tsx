@@ -15,6 +15,7 @@ export function TransferOrder() {
       queryKey={['facility', 'transfer-order']}
       listRequests={listTransferOrders}
       createRequest={(values) => createTransferOrder(values as TransferOrderForm)}
+      moduleConfig={{ module: 'transferOrder', entity: 'selfServiceTransferOrders' }}
       source="Facility requirements workbook"
       defaultValues={{
         transferType: 'Temporary',

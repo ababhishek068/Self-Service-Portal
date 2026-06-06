@@ -2,12 +2,15 @@ import { formatISO } from 'date-fns'
 import { createPettyCashRequest, listPettyCashRequests } from '@/api/endpoints/pettyCash'
 import { RequestFormPage } from '@/components/shared/RequestFormPage'
 import { departments } from '@/data/departments'
+import { useEmployeeDefaults } from '@/hooks/useEmployeeDefaults'
 import { pettyCashSchema, type PettyCashForm } from '@/schemas/requestSchemas'
 
 const today = formatISO(new Date(), { representation: 'date' })
 const departmentOptions = departments.map((department) => ({ label: department.name, value: department.code }))
 
 export function PettyCash() {
+  const { departmentCode, responsibleCenter } = useEmployeeDefaults()
+
   return (
     <RequestFormPage
       title="Petty Cash"
@@ -19,11 +22,11 @@ export function PettyCash() {
       source="Finance requirements workbook"
       defaultValues={{
         activity: 'Request',
-        departmentCode: 'BO',
+        departmentCode,
         requestDate: today,
         amount: 0,
         limitAmount: 120000,
-        costCenter: 'HO-BO',
+        costCenter: responsibleCenter,
         purpose: '',
         attachments: [],
       }}
@@ -42,6 +45,7 @@ export function PettyCash() {
         { name: 'purpose', label: 'Purpose', type: 'textarea' },
         { name: 'attachments', label: 'Replenishment/settlement attachments', type: 'files' },
       ]}
+      moduleConfig={{ module: 'pettyCash', entity: 'selfServicePettyCashRequests' }}
       businessRules={[
         'Department-based limits are loaded from ERP configuration.',
         'Approval workflow is controlled by ERP.',

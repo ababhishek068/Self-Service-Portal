@@ -3,6 +3,7 @@ import { createStoreRequisition, listStoreRequisitions } from '@/api/endpoints/s
 import { RequestFormPage } from '@/components/shared/RequestFormPage'
 import { departments } from '@/data/departments'
 import { itemMaster } from '@/data/items'
+import { useEmployeeDefaults } from '@/hooks/useEmployeeDefaults'
 import { buildFaTagNumber } from '@/utils/validators'
 import { storeRequisitionSchema, type StoreRequisitionForm } from '@/schemas/requestSchemas'
 
@@ -11,6 +12,8 @@ const departmentOptions = departments.map((department) => ({ label: department.n
 const itemOptions = itemMaster.map((item) => ({ label: `${item.code} - ${item.description}`, value: item.code }))
 
 export function StoreRequisition() {
+  const { departmentCode } = useEmployeeDefaults()
+
   return (
     <RequestFormPage
       title="Store Requisition"
@@ -22,7 +25,7 @@ export function StoreRequisition() {
       source="ERP facility and procurement 21st.xlsx"
       defaultValues={{
         requestDate: today,
-        departmentCode: 'BO',
+        departmentCode,
         budgetAvailable: 120000,
         justification: '',
         lines: [
@@ -68,6 +71,7 @@ export function StoreRequisition() {
         },
         { name: 'attachments', label: 'Attachments', type: 'files' },
       ]}
+      moduleConfig={{ module: 'storeRequisition', entity: 'selfServiceStoreRequisitions' }}
       businessRules={[
         'Item description and UoM resolve from item code.',
         'Department-scoped rights prevent requesting for unauthorized units.',

@@ -1,4 +1,5 @@
 import { env } from '@/config/env'
+import { authGet, authPost } from '@/api/client/authClient'
 import { essGet, essPost } from '@/api/client/essClient'
 import { mockDecideApproval, mockGetRequest, mockListApprovals } from '@/api/mock/mockStore'
 import type { ApprovalListType } from '@/types/approval'
@@ -47,6 +48,10 @@ function toQueueItem(row: BcApprovalRow): ApprovalQueueItem {
 
 export const listApprovals = async (type: ApprovalListType = 'pending') => {
   if (env.USE_MOCK) return mockListApprovals(type)
+  if (env.AUTH_API_URL) {
+    const { rows } = await authGet<{ rows: ApprovalQueueItem[] }>('/api/approvals', { params: { type } })
+    return rows
+  }
   const { rows } = await essGet<{ rows: BcApprovalRow[] }>('/api/staff/approvals', {
     params: { status: statusFor(type) },
   })
@@ -59,11 +64,15 @@ export const listRejectedDocuments = () => listApprovals('rejected')
 
 export const getApprovalDetail = async (id: string) => {
   if (env.USE_MOCK) return mockGetRequest(id)
+  if (env.AUTH_API_URL) return authGet<PortalRequest>(`/api/requests/${encodeURIComponent(id)}`)
   return essGet<PortalRequest>(`/api/staff/approvals/${encodeURIComponent(id)}`)
 }
 
 export const decideApproval = async (id: string, decision: 'Approved' | 'Rejected', comment: string) => {
   if (env.USE_MOCK) return mockDecideApproval(id, decision, comment)
+  if (env.AUTH_API_URL) {
+    return authPost<PortalRequest>(`/api/approvals/${encodeURIComponent(id)}/decide`, { decision, comment })
+  }
   return essPost<PortalRequest>('/api/staff/approvals/decide', {
     docNo: id,
     decision,
@@ -75,6 +84,11 @@ export const getApprovalsCount = async (type: string, status: string) => {
   if (env.USE_MOCK) {
     const rows = await mockListApprovals('pending')
     return { totalAll: rows.length, isNotified: false }
+  }
+  if (env.AUTH_API_URL) {
+    return authGet<{ totalAll: number; isNotified: boolean }>(
+      `/api/approvals/count/${encodeURIComponent(type)}/${encodeURIComponent(status)}`,
+    )
   }
   return essGet<{ totalAll: number; isNotified: boolean }>(
     `/api/staff/approvals/count/${encodeURIComponent(type)}/${encodeURIComponent(status)}`,

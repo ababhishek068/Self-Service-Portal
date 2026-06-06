@@ -1,15 +1,8 @@
+import { useQuery } from '@tanstack/react-query'
+import { listWorkTickets, type WorkTicketRow } from '@/api/endpoints/workTickets'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { DataTable, type DataTableColumn } from '@/components/shared/DataTable'
 import { StatusBadge } from '@/components/shared/StatusBadge'
-
-interface WorkTicketRow {
-  id: string
-  ticketNo: string
-  vehicle: string
-  driver: string
-  date: string
-  status: string
-}
 
 const columns: DataTableColumn<WorkTicketRow>[] = [
   { id: 'ticketNo', header: 'Ticket No.', cell: (row) => row.ticketNo },
@@ -20,9 +13,17 @@ const columns: DataTableColumn<WorkTicketRow>[] = [
 ]
 
 export function WorkTickets() {
+  const query = useQuery({ queryKey: ['facility', 'work-tickets'], queryFn: listWorkTickets })
+
   return (
     <PageWrapper title="Work Tickets" description="Vehicle work tickets raised against your transport requisitions.">
-      <DataTable rows={[]} columns={columns} getRowId={() => 'empty'} compact />
+      <DataTable
+        rows={query.data ?? []}
+        columns={columns}
+        getRowId={(row) => row.id}
+        emptyTitle={query.isLoading ? 'Loading work tickets...' : 'No work tickets found'}
+        compact
+      />
     </PageWrapper>
   )
 }

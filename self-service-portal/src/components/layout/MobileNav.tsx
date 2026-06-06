@@ -7,6 +7,7 @@ import { useAuth } from '@/hooks/useAuth'
 import { useLayout } from '@/hooks/useLayout'
 import { handleUnderConstructionClick, useNavigation } from '@/hooks/useNavigation'
 import { cn } from '@/lib/utils'
+import { brand } from '@/config/brand'
 
 function MobileNavGroup({ item, onNavigate }: { item: NavItem; onNavigate: () => void }) {
   const location = useLocation()
@@ -126,8 +127,8 @@ export function MobileNav() {
       >
         <div className="portal-sidebar-brand portal-shimmer-bar relative flex items-center justify-between gap-3 px-4 py-3">
           <div>
-            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/70">Hijra Bank</p>
-            <p className="text-sm font-bold text-white">Self Service Portal</p>
+            <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-white/70">{brand.company}</p>
+            <p className="text-sm font-bold text-white">{brand.product}</p>
           </div>
           <Button
             type="button"

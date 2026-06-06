@@ -5,6 +5,7 @@ import { type NavItem } from '@/config/navigation'
 import { useLayout } from '@/hooks/useLayout'
 import { handleUnderConstructionClick, useNavigation } from '@/hooks/useNavigation'
 import { cn } from '@/lib/utils'
+import { brand } from '@/config/brand'
 
 function isGroupActive(item: NavItem, pathname: string): boolean {
   if (item.path) return pathname === item.path || (item.path !== '/' && pathname.startsWith(item.path))
@@ -112,8 +113,8 @@ export function Sidebar() {
       )}
     >
       <div className="portal-sidebar-brand portal-shimmer-bar shrink-0 px-4 py-3">
-        <p className="text-xs font-semibold tracking-[0.2em] text-white/70">HIJRA BANK</p>
-        <p className="text-sm font-bold text-white">Self Service</p>
+        <p className="text-xs font-semibold uppercase tracking-[0.2em] text-white/70">{brand.company}</p>
+        <p className="text-sm font-bold text-white">{brand.productShort}</p>
       </div>
       <nav
         ref={navRef}

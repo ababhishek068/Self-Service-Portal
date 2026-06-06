@@ -3,6 +3,7 @@ import express from 'express'
 import { env } from './config/env.js'
 import { errorHandler } from './middleware/errorHandler.js'
 import authRoutes from './routes/auth.js'
+import portalRoutes from './routes/portal.js'
 
 export function createApp() {
   const app = express()
@@ -25,6 +26,7 @@ export function createApp() {
   })
 
   app.use('/api/auth', authRoutes)
+  app.use('/api', portalRoutes)
 
   app.use((_req, res) => {
     res.status(404).json({ message: 'Not found' })

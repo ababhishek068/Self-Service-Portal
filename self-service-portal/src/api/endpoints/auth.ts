@@ -1,5 +1,6 @@
 import { authGet, authPost, clearToken, getToken, setToken } from '@/api/client/authClient'
 import { env } from '@/config/env'
+import { deriveRoles } from '@/config/roles'
 import { mockEmployee } from '@/api/mock/mockStore'
 import type { Employee } from '@/types/erp.types'
 
@@ -12,7 +13,21 @@ export interface AuthUser {
   employeeNo: string
   name: string
   displayName: string
+  roles?: string[]
+  role?: string
+  email?: string
   department: string
+  departmentName?: string
+  branchCode?: string
+  branchName?: string
+  jobTitle?: string
+  jobGrade?: string
+  placeOfDuty?: string
+  accountNumber?: string
+  managerEmployeeNo?: string
+  leaveBalance?: number
+  responsibleCenter?: string
+  permissionDepartments?: string[]
   phoneNumber: string
   gender: string
   userCategory: 'staff' | 'farmer'
@@ -26,25 +41,29 @@ const useRealAuth = Boolean(env.AUTH_API_URL)
 
 /** Map the backend auth user into the portal's richer `Employee` type. */
 function toEmployee(user: AuthUser): Employee {
+  const roles = deriveRoles(user)
   return {
     id: user.employeeNo,
     employeeNo: user.employeeNo,
     displayName: user.displayName || user.name || user.employeeNo,
-    email: '',
+    email: user.email ?? '',
     departmentCode: user.department ?? '',
-    departmentName: '',
-    branchCode: '',
-    branchName: '',
-    jobTitle: '',
-    jobGrade: '',
-    placeOfDuty: '',
-    accountNumber: '',
-    managerEmployeeNo: '',
-    leaveBalance: 0,
-    responsibleCenter: '',
-    permissionDepartments: [],
-    isCEO: Boolean(user.CEO),
-    isHOD: Boolean(user.HOD),
+    departmentName: user.departmentName ?? '',
+    branchCode: user.branchCode ?? '',
+    branchName: user.branchName ?? '',
+    jobTitle: user.jobTitle ?? '',
+    jobGrade: user.jobGrade ?? '',
+    placeOfDuty: user.placeOfDuty ?? '',
+    accountNumber: user.accountNumber ?? '',
+    managerEmployeeNo: user.managerEmployeeNo ?? '',
+    leaveBalance: user.leaveBalance ?? 0,
+    responsibleCenter: user.responsibleCenter ?? '',
+    permissionDepartments: user.permissionDepartments ?? [],
+    gender: user.gender ?? '',
+    phoneNumber: user.phoneNumber ?? '',
+    roles,
+    isCEO: roles.includes('ceo') || Boolean(user.CEO),
+    isHOD: roles.includes('hod') || Boolean(user.HOD),
   }
 }
 

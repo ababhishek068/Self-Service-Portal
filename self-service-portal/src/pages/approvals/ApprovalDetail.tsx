@@ -11,12 +11,14 @@ import { Textarea } from '@/components/ui/textarea'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useApprovalDecision, useApprovalDetail } from '@/hooks/useApprovals'
 import { useAuth } from '@/hooks/useAuth'
+import { usePermissions } from '@/hooks/usePermissions'
 import { formatCurrency, formatDateTime } from '@/utils/formatters'
 import { isMakerAllowedToApprove } from '@/utils/validators'
 
 export function ApprovalDetail() {
   const { id } = useParams()
   const { employee } = useAuth()
+  const { canApprove: hasApproverRole } = usePermissions()
   const [comment, setComment] = useState('')
   const [decision, setDecision] = useState<'Approved' | 'Rejected' | null>(null)
   const detail = useApprovalDetail(id ?? '')
@@ -24,7 +26,8 @@ export function ApprovalDetail() {
 
   if (!id) return <Navigate to="/approvals" replace />
   const request = detail.data
-  const canApprove = request && employee ? isMakerAllowedToApprove(request.makerEmployeeNo, employee.employeeNo) : false
+  const isNotMaker = request && employee ? isMakerAllowedToApprove(request.makerEmployeeNo, employee.employeeNo) : false
+  const canApprove = hasApproverRole && isNotMaker
 
   return (
     <PageWrapper
@@ -73,7 +76,9 @@ export function ApprovalDetail() {
 
               {!canApprove ? (
                 <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                  Maker cannot approve own request.
+                  {!hasApproverRole
+                    ? 'Your role does not have approval authority for this document.'
+                    : 'Maker cannot approve own request.'}
                 </div>
               ) : null}
 

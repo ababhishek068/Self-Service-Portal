@@ -1,17 +1,10 @@
+import { useQuery } from '@tanstack/react-query'
+import { listHodStaffOnLeave, type HodStaffLeaveRow } from '@/api/endpoints/hod'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { DataTable, type DataTableColumn } from '@/components/shared/DataTable'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 
-interface StaffLeaveRow {
-  id: string
-  employee: string
-  leaveType: string
-  from: string
-  to: string
-  status: string
-}
-
-const columns: DataTableColumn<StaffLeaveRow>[] = [
+const columns: DataTableColumn<HodStaffLeaveRow>[] = [
   { id: 'employee', header: 'Employee', cell: (row) => row.employee },
   { id: 'leaveType', header: 'Leave Type', cell: (row) => row.leaveType },
   { id: 'from', header: 'From', cell: (row) => row.from },
@@ -20,12 +13,17 @@ const columns: DataTableColumn<StaffLeaveRow>[] = [
 ]
 
 export function StaffOnLeave() {
+  const query = useQuery({ queryKey: ['hod', 'staff-on-leave'], queryFn: listHodStaffOnLeave })
+
   return (
-    <PageWrapper
-      title="Staff on Leave"
-      description="Members of your department currently on approved leave."
-    >
-      <DataTable rows={[]} columns={columns} getRowId={() => 'empty'} compact />
+    <PageWrapper title="Staff on Leave" description="Members of your department currently on approved leave.">
+      <DataTable
+        rows={query.data ?? []}
+        columns={columns}
+        getRowId={(row) => row.id}
+        emptyTitle={query.isLoading ? 'Loading staff leave...' : 'No department staff are currently on leave'}
+        compact
+      />
     </PageWrapper>
   )
 }

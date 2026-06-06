@@ -37,6 +37,7 @@ export function MaintenanceRequest() {
         { name: 'issueDescription', label: 'Issue description', type: 'textarea' },
         { name: 'attachments', label: 'Photos or documents', type: 'files' },
       ]}
+      moduleConfig={{ module: 'maintenance', entity: 'selfServiceMaintenanceRequests' }}
       businessRules={[
         'FA maintenance requires asset tag number.',
         'Priority determines SLA and escalation.',

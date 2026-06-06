@@ -12,10 +12,14 @@ export const moduleLabels: Record<PortalModuleKey, string> = {
   transport: 'Transport Requisition',
   maintenance: 'Maintenance Request',
   transferOrder: 'Transfer Orders',
+  vehicleTransfer: 'Vehicle Transfer',
   gatePass: 'Gate Pass',
   leave: 'Leave Requisition',
   overtime: 'Overtime Request',
   travel: 'Travel Request',
+  salaryAdvance: 'Salary Advance',
+  training: 'Training Request',
+  documentRequisition: 'Document Requisition',
 }
 
 /** Ordered list of statuses a request can transition through. */

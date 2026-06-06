@@ -1,4 +1,12 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
+import { RoleRoute } from '@/components/shared/RoleRoute'
+import {
+  erpConnectorRoles,
+  gatePassReportRoles,
+  leaveBalanceReportRoles,
+  storeUsageReportRoles,
+} from '@/config/roleAccess'
+import { approverRoles } from '@/config/roles'
 import { Footer } from '@/components/layout/Footer'
 import { MainContent } from '@/components/layout/MainContent'
 import { MobileNav } from '@/components/layout/MobileNav'
@@ -46,9 +54,17 @@ import { ErpConnector } from '@/pages/reports/ErpConnector'
 import { GatePassLog } from '@/pages/reports/GatePassLog'
 import { LeaveBalanceReport } from '@/pages/reports/LeaveBalanceReport'
 import { StoreUsageReport } from '@/pages/reports/StoreUsageReport'
+import { ApiNetworkCheck } from '@/pages/dev/ApiNetworkCheck'
 
 function ProtectedLayout() {
-  const { isAuthenticated } = useAuth()
+  const { isAuthenticated, bootstrapped } = useAuth()
+  if (!bootstrapped) {
+    return (
+      <div className="flex min-h-screen items-center justify-center text-sm text-slate-600">
+        Restoring your session…
+      </div>
+    )
+  }
   if (!isAuthenticated) return <Navigate to="/login" replace />
 
   return (
@@ -98,20 +114,21 @@ export default function App() {
         <Route path="hr/document-requisition" element={<DocumentRequisition />} />
         <Route path="hr/overtime-request" element={<OvertimeRequest />} />
         <Route path="hr/travel-request" element={<TravelRequest />} />
-        <Route path="approvals" element={<PendingApprovals />} />
-        <Route path="approvals/approved" element={<ApprovedDocuments />} />
-        <Route path="approvals/rejected" element={<RejectedDocuments />} />
-        <Route path="approvals/:id" element={<ApprovalDetail />} />
-        <Route path="ceo/master-roll" element={<MasterRoll />} />
-        <Route path="hod/team-requests" element={<HodTeamRequests />} />
-        <Route path="hod/staff-on-leave" element={<StaffOnLeave />} />
+        <Route path="approvals" element={<RoleRoute roles={approverRoles}><PendingApprovals /></RoleRoute>} />
+        <Route path="approvals/approved" element={<RoleRoute roles={approverRoles}><ApprovedDocuments /></RoleRoute>} />
+        <Route path="approvals/rejected" element={<RoleRoute roles={approverRoles}><RejectedDocuments /></RoleRoute>} />
+        <Route path="approvals/:id" element={<RoleRoute roles={approverRoles}><ApprovalDetail /></RoleRoute>} />
+        <Route path="ceo/master-roll" element={<RoleRoute roles={['ceo']}><MasterRoll /></RoleRoute>} />
+        <Route path="hod/team-requests" element={<RoleRoute roles={['hod']}><HodTeamRequests /></RoleRoute>} />
+        <Route path="hod/staff-on-leave" element={<RoleRoute roles={['hod']}><StaffOnLeave /></RoleRoute>} />
         <Route path="downloads/documents" element={<Documents />} />
         <Route path="profile" element={<Profile />} />
         <Route path="change-password" element={<ChangePassword />} />
-        <Route path="reports/store-usage" element={<StoreUsageReport />} />
-        <Route path="reports/leave-balance" element={<LeaveBalanceReport />} />
-        <Route path="reports/gate-pass-log" element={<GatePassLog />} />
-        <Route path="reports/erp-connector" element={<ErpConnector />} />
+        <Route path="reports/store-usage" element={<RoleRoute roles={storeUsageReportRoles}><StoreUsageReport /></RoleRoute>} />
+        <Route path="reports/leave-balance" element={<RoleRoute roles={leaveBalanceReportRoles}><LeaveBalanceReport /></RoleRoute>} />
+        <Route path="reports/gate-pass-log" element={<RoleRoute roles={gatePassReportRoles}><GatePassLog /></RoleRoute>} />
+        <Route path="reports/erp-connector" element={<RoleRoute roles={erpConnectorRoles}><ErpConnector /></RoleRoute>} />
+        {import.meta.env.DEV ? <Route path="dev/api-check" element={<ApiNetworkCheck />} /> : null}
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

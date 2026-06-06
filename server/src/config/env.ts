@@ -31,10 +31,16 @@ function list(key: string, fallback: string[]): string[] {
 
 const NODE_ENV = str('NODE_ENV', 'development')
 const isProd = NODE_ENV === 'production'
+const AUTH_PROVIDER = str('AUTH_PROVIDER', 'local') as AuthProvider
+const USER_STORE = (str('USER_STORE') || (process.env.DATABASE_URL ? 'db' : 'json')) as 'db' | 'json'
 
 const JWT_SECRET = str('JWT_SECRET', isProd ? '' : 'dev-only-insecure-secret-change-me')
 if (isProd && !JWT_SECRET) {
   throw new Error('JWT_SECRET must be set in production. Refusing to start with a default secret.')
+}
+
+if (USER_STORE === 'db' && !str('DATABASE_URL')) {
+  throw new Error('DATABASE_URL must be set when USER_STORE=db.')
 }
 
 export const env = {
@@ -44,7 +50,7 @@ export const env = {
   PORT: num('PORT', 4000),
 
   /** Which login strategy is active. 'local' = our own user table (now). 'bc' = Business Central (later). */
-  AUTH_PROVIDER: str('AUTH_PROVIDER', 'local') as AuthProvider,
+  AUTH_PROVIDER,
 
   JWT_SECRET,
   /** Access-token lifetime, e.g. "8h", "30m". */
@@ -56,7 +62,7 @@ export const env = {
    *   'json' → local JSON file
    * Defaults to 'db' when DATABASE_URL is set, otherwise 'json'.
    */
-  USER_STORE: (str('USER_STORE') || (process.env.DATABASE_URL ? 'db' : 'json')) as 'db' | 'json',
+  USER_STORE,
 
   /** MySQL connection string (consumed by @ssp/db / Prisma). */
   DATABASE_URL: str('DATABASE_URL'),

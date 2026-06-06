@@ -3,12 +3,15 @@ import { createStaffClaim, listStaffClaims } from '@/api/endpoints/staffClaim'
 import { RequestFormPage } from '@/components/shared/RequestFormPage'
 import { departments } from '@/data/departments'
 import { hospitalCoverage } from '@/data/hospitalCoverage'
+import { useEmployeeDefaults } from '@/hooks/useEmployeeDefaults'
 import { staffClaimSchema, type StaffClaimForm } from '@/schemas/requestSchemas'
 
 const today = formatISO(new Date(), { representation: 'date' })
 const departmentOptions = departments.map((department) => ({ label: department.name, value: department.code }))
 
 export function StaffClaim() {
+  const employeeDefaults = useEmployeeDefaults()
+
   return (
     <RequestFormPage
       title="Staff Claim"
@@ -21,10 +24,7 @@ export function StaffClaim() {
       defaultValues={{
         claimType: 'Medical',
         claimDate: today,
-        departmentCode: 'BO',
-        jobGrade: 'G7',
-        placeOfDuty: 'Head Office',
-        employeeAccountNumber: '1000459922',
+        ...employeeDefaults,
         hospitalCategory: 'Panel Hospital A',
         coveragePercent: 90,
         grossAmount: 0,
@@ -54,6 +54,7 @@ export function StaffClaim() {
         { name: 'description', label: 'Description', type: 'textarea' },
         { name: 'attachments', label: 'Supporting documents', type: 'files' },
       ]}
+      moduleConfig={{ module: 'staffClaim', entity: 'selfServiceStaffClaims' }}
       businessRules={[
         'Medical claims require hospital category and coverage percent.',
         'Department, job grade, place of duty, account, and net amount remain visible.',

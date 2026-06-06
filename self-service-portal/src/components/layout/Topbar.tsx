@@ -3,10 +3,13 @@ import { LogOut, Menu, User } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useLayout } from '@/hooks/useLayout'
 import { useAuth } from '@/hooks/useAuth'
+import { usePermissions } from '@/hooks/usePermissions'
+import { brand } from '@/config/brand'
 
 export function Topbar() {
   const { pageTitle, toggleSidebar, sidebarOpen, toggleMobileNav, mobileNavOpen } = useLayout()
   const { employee, logout } = useAuth()
+  const { primaryRoleShortLabel } = usePermissions()
   const displayName = employee?.displayName?.split(' ')[0] ?? 'User'
   const [loggingOut, setLoggingOut] = useState(false)
 
@@ -52,15 +55,17 @@ export function Topbar() {
 
         <div className="flex items-center gap-2">
           <div className="flex h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-blue-700 via-[var(--portal-navy)] to-[var(--portal-orange)] text-xs font-bold text-white shadow-lg ring-2 ring-white/80 transition-transform duration-300 hover:scale-110 hover:shadow-[0_0_20px_var(--portal-glow-orange)]">
-            H
+            {brand.monogram}
           </div>
           <div className="hidden sm:block">
-            <p className="text-sm font-bold leading-tight text-[var(--portal-navy)]">HIJRA BANK</p>
+            <p className="max-w-[10rem] truncate text-sm font-bold uppercase leading-tight text-[var(--portal-navy)] sm:max-w-[14rem] lg:max-w-none">
+              {brand.company}
+            </p>
           </div>
         </div>
 
         <p className="hidden text-base font-bold tracking-wide text-[var(--portal-navy)] md:block lg:text-lg">
-          SELF SERVICE PORTAL
+          {brand.product.toUpperCase()}
         </p>
 
         <p
@@ -77,7 +82,12 @@ export function Topbar() {
           <div className="hidden h-9 w-9 items-center justify-center rounded-full bg-gradient-to-br from-slate-200 to-slate-300 text-[var(--portal-navy)] shadow-inner ring-2 ring-white transition-all duration-300 hover:scale-105 hover:ring-[var(--portal-orange)]/40 hover:shadow-md sm:flex">
             <User className="h-5 w-5" />
           </div>
-          <span className="hidden text-sm font-medium text-slate-800 md:inline">{displayName}</span>
+          <div className="hidden flex-col leading-tight md:flex">
+            <span className="text-sm font-medium text-slate-800">{displayName}</span>
+            <span className="text-[10px] font-semibold uppercase tracking-wide text-[var(--portal-orange)]">
+              {primaryRoleShortLabel}
+            </span>
+          </div>
           <Button
             type="button"
             variant="ghost"

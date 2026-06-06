@@ -20,8 +20,11 @@ import { DataTable, type DataTableColumn } from '@/components/shared/DataTable'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useAuth } from '@/hooks/useAuth'
+import { usePermissions } from '@/hooks/usePermissions'
+import { approverRoles, type PortalRole } from '@/config/roles'
 import { formatCurrency, formatDateTime } from '@/utils/formatters'
 import type { PortalRequest } from '@/types/erp.types'
+import { brand } from '@/config/brand'
 
 interface DashboardTile {
   id: string
@@ -32,6 +35,8 @@ interface DashboardTile {
   tone: string
   /** Tailwind classes for the inner icon chip. */
   chip: string
+  /** When set, only show this tile to users holding one of these roles. */
+  roles?: PortalRole[]
 }
 
 const tiles: DashboardTile[] = [
@@ -42,6 +47,7 @@ const tiles: DashboardTile[] = [
     icon: ClipboardCopy,
     tone: 'from-rose-500 via-rose-500 to-rose-600',
     chip: 'bg-white/20',
+    roles: approverRoles,
   },
   {
     id: 'approvedDocuments',
@@ -50,6 +56,7 @@ const tiles: DashboardTile[] = [
     icon: ClipboardCheck,
     tone: 'from-sky-500 via-sky-500 to-blue-600',
     chip: 'bg-white/20',
+    roles: approverRoles,
   },
   {
     id: 'rejectedDocuments',
@@ -58,6 +65,7 @@ const tiles: DashboardTile[] = [
     icon: CircleX,
     tone: 'from-emerald-500 via-emerald-500 to-emerald-600',
     chip: 'bg-white/20',
+    roles: approverRoles,
   },
   {
     id: 'leaveApplications',
@@ -111,9 +119,12 @@ const tiles: DashboardTile[] = [
 
 export function Dashboard() {
   const { employee } = useAuth()
+  const { has, canApprove, primaryRoleLabel, capabilitySummary, quickLinks } = usePermissions()
   const summary = useQuery({ queryKey: ['dashboard'], queryFn: getDashboardSummary })
   const firstName = employee?.displayName?.split(' ')[0] ?? 'there'
   const data = (summary.data ?? {}) as Record<string, number | undefined>
+  const visibleTiles = tiles.filter((tile) => !tile.roles || has(tile.roles))
+  const pendingCount = data.pendingApprovals ?? 0
 
   const activityColumns: DataTableColumn<PortalRequest>[] = [
     { id: 'requestNo', header: 'No.', cell: (row) => row.requestNo },
@@ -135,20 +146,66 @@ export function Dashboard() {
                 <Sparkles className="h-4 w-4 text-[var(--portal-orange)]" />
                 Welcome back
               </p>
-              <p className="mt-0.5 truncate text-xl font-bold tracking-tight text-[var(--portal-navy)] sm:text-2xl">
+              <p className="mt-0.5 flex flex-wrap items-center gap-2 truncate text-xl font-bold tracking-tight text-[var(--portal-navy)] sm:text-2xl">
                 Hi {firstName}
+                <span className="rounded-full bg-[var(--portal-navy)]/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--portal-navy)]">
+                  {primaryRoleLabel}
+                </span>
               </p>
               <p className="mt-1 text-xs text-slate-500 sm:text-sm">
-                Welcome to Hijra Bank&apos;s Self Service Portal — {new Date().getFullYear()} Summary
+                Welcome to the {brand.product} — {new Date().getFullYear()} Summary
               </p>
+              {capabilitySummary ? (
+                <p className="mt-2 text-xs text-slate-600 sm:text-sm">{capabilitySummary}</p>
+              ) : null}
             </div>
             <div className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--portal-navy)] to-[var(--portal-orange)] text-2xl font-bold text-white shadow-lg sm:flex">
               {firstName.charAt(0).toUpperCase()}
             </div>
           </div>
 
+          {quickLinks.length > 0 ? (
+            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+              <h2 className="mb-3 text-sm font-semibold text-[var(--portal-navy)]">Quick actions for your role</h2>
+              <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
+                {quickLinks.map((link) => (
+                  <Link
+                    key={link.href}
+                    to={link.href}
+                    className="group rounded-lg border border-slate-100 bg-slate-50 p-3 transition-colors hover:border-[var(--portal-navy)]/20 hover:bg-blue-50/50"
+                  >
+                    <p className="text-sm font-semibold text-[var(--portal-navy)] group-hover:text-[var(--portal-orange)]">
+                      {link.label}
+                    </p>
+                    <p className="mt-0.5 text-xs text-slate-600">{link.description}</p>
+                  </Link>
+                ))}
+              </div>
+            </div>
+          ) : null}
+
+          {canApprove && pendingCount > 0 ? (
+            <Link
+              to="/approvals"
+              className="group flex items-center justify-between gap-4 rounded-xl border border-amber-200 bg-gradient-to-r from-amber-50 to-orange-50 p-4 shadow-sm transition-all duration-200 hover:-translate-y-0.5 hover:shadow-md"
+            >
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-lg bg-[var(--portal-orange)]/15 text-[var(--portal-orange)]">
+                  <ClipboardCopy className="h-6 w-6" />
+                </div>
+                <div>
+                  <p className="text-sm font-semibold text-slate-900">
+                    You have {pendingCount} document{pendingCount === 1 ? '' : 's'} awaiting your approval
+                  </p>
+                  <p className="text-xs text-slate-600">Review and approve or reject pending requests for your team.</p>
+                </div>
+              </div>
+              <ArrowRight className="h-5 w-5 shrink-0 text-[var(--portal-orange)] transition-transform duration-200 group-hover:translate-x-1" />
+            </Link>
+          ) : null}
+
           <div className="portal-stagger grid grid-cols-2 gap-3 sm:gap-4 md:grid-cols-3 xl:grid-cols-4">
-            {tiles.map((tile) => {
+            {visibleTiles.map((tile) => {
               const Icon = tile.icon
               const value = data[tile.id] ?? 0
               return (

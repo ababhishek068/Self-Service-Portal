@@ -92,3 +92,8 @@ export async function authPost<T, B = unknown>(url: string, body?: B, config?: A
   const response = await authHttp.post<T>(url, body, config)
   return response.data
 }
+
+export async function authDelete<T = void>(url: string, config?: AxiosRequestConfig): Promise<T> {
+  const response = await authHttp.delete<T>(url, config)
+  return response.data
+}

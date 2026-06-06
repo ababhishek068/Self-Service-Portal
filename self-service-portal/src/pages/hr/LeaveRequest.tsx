@@ -1,8 +1,10 @@
+import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import { format, parseISO } from 'date-fns'
-import { Link } from 'react-router-dom'
-import { Plus } from 'lucide-react'
 import { PageWrapper } from '@/components/layout/PageWrapper'
+import { DataTable, type DataTableColumn } from '@/components/shared/DataTable'
+import { PortalNewButton } from '@/components/shared/PortalNewButton'
+import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -16,10 +18,13 @@ import {
   getLeaveBalance,
   getLeaveDates,
   leaveTypeCatalog,
+  listLeaveRequests,
   relieversMock,
   submitLeaveRequest,
+  type LeaveListRow,
   type LeaveType,
 } from '@/api/endpoints/leave'
+import { useAuth } from '@/hooks/useAuth'
 
 const DASH = '—'
 
@@ -40,7 +45,19 @@ function formatPretty(iso: string): string {
   }
 }
 
+function filterLeaveTypesByGender(types: LeaveType[], gender: string): LeaveType[] {
+  const g = gender.toLowerCase()
+  return types.filter((type) => {
+    if (['MATERNITY', 'PRENATAL'].includes(type.code)) return g === 'female'
+    if (type.code === 'PATERNITY') return g === 'male'
+    return true
+  })
+}
+
 export function LeaveRequest() {
+  const { employee } = useAuth()
+  const queryClient = useQueryClient()
+  const leaveListQuery = useQuery({ queryKey: ['hr', 'leave-list'], queryFn: listLeaveRequests })
   const [leaveType, setLeaveType] = useState('')
   const [entitlement, setEntitlement] = useState<number | null>(null)
   const [balance, setBalance] = useState<number | null>(null)
@@ -51,14 +68,17 @@ export function LeaveRequest() {
   const [relievers, setRelievers] = useState(relieversMock)
   const [submittingForm, setSubmittingForm] = useState(false)
 
+  const gender = employee?.gender || 'Male'
+  const availableTypes = filterLeaveTypesByGender(types, gender)
+
   useEffect(() => {
     fetchLeaveTypes()
-      .then(setTypes)
-      .catch(() => setTypes(leaveTypeCatalog))
+      .then((fetched) => setTypes(filterLeaveTypesByGender(fetched, gender)))
+      .catch(() => setTypes(filterLeaveTypesByGender(leaveTypeCatalog, gender)))
     fetchRelievers()
       .then(setRelievers)
       .catch(() => setRelievers(relieversMock))
-  }, [])
+  }, [gender])
 
   const [appliedDays, setAppliedDays] = useState('')
   const [appliedHours, setAppliedHours] = useState('')
@@ -146,6 +166,29 @@ export function LeaveRequest() {
     }
   }, [halfDay])
 
+  const resetForm = () => {
+    setLeaveType('')
+    setAppliedDays('')
+    setAppliedHours('')
+    setHalfDay('0')
+    setStartDate('')
+    setStartDateTime('')
+    setEndDate('')
+    setReturnDate('')
+    setReliever('')
+    setReason('')
+    setError(null)
+    setSuccess(null)
+  }
+
+  const leaveColumns: DataTableColumn<LeaveListRow>[] = [
+    { id: 'code', header: 'Application No.', cell: (row) => row.ApplicationCode },
+    { id: 'type', header: 'Leave Type', cell: (row) => row.LeaveType },
+    { id: 'days', header: 'Days', cell: (row) => row.DaysApplied ?? '—' },
+    { id: 'start', header: 'Start', cell: (row) => row.StartDate ?? '—' },
+    { id: 'status', header: 'Status', cell: (row) => <StatusBadge status={row.Status} /> },
+  ]
+
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
     if (!leaveType || !reason || !endDate) {
@@ -166,6 +209,9 @@ export function LeaveRequest() {
       if (result.ok) {
         setSuccess(result.message ?? 'Leave application submitted successfully.')
         setError(null)
+        await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+        await queryClient.invalidateQueries({ queryKey: ['hr', 'leave-list'] })
+        resetForm()
       } else {
         setError(result.message ?? 'Submission failed.')
       }
@@ -180,14 +226,7 @@ export function LeaveRequest() {
     <PageWrapper
       title="Leave Requisition"
       showPageHeading={false}
-      actions={
-        <Button asChild variant="outline" className="rounded-full">
-          <Link to="/hr/leave-request">
-            <Plus className="h-4 w-4" />
-            New Request
-          </Link>
-        </Button>
-      }
+      actions={<PortalNewButton label="New Request" onClick={resetForm} />}
     >
       <form onSubmit={handleSubmit} className="portal-form-card animate-page-in mx-auto w-full max-w-5xl">
         <div className="portal-form-card-header relative px-4 py-3 text-center text-sm font-semibold tracking-wide text-white sm:text-base">
@@ -212,7 +251,7 @@ export function LeaveRequest() {
                 value={leaveType}
                 onChange={(e) => setLeaveType(e.target.value)}
                 placeholder="--select--"
-                options={types.map((t) => ({
+                options={availableTypes.map((t) => ({
                   value: t.code,
                   label: `${t.description} (Entitlement: ${t.days})`,
                 }))}
@@ -306,6 +345,12 @@ export function LeaveRequest() {
 
               <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
                 <div className="space-y-1.5">
+                  <Label>Applied Days</Label>
+                  <p className="flex h-10 items-center text-sm font-semibold text-slate-700">
+                    {appliedDays || appliedHours || DASH}
+                  </p>
+                </div>
+                <div className="space-y-1.5">
                   <Label>End Date</Label>
                   <p className="flex h-10 items-center text-sm font-semibold text-slate-700">
                     {datesLoading ? <Skeleton className="h-5 w-32" /> : endDate ? formatPretty(endDate) : DASH}
@@ -362,6 +407,17 @@ export function LeaveRequest() {
           ) : null}
         </div>
       </form>
+
+      <div className="mt-6">
+        <h2 className="portal-page-title mb-3 text-base font-semibold">My Leave Applications</h2>
+        <DataTable
+          rows={leaveListQuery.data ?? []}
+          columns={leaveColumns}
+          getRowId={(row) => row.ApplicationCode}
+          compact
+          emptyTitle="No leave applications yet."
+        />
+      </div>
     </PageWrapper>
   )
 }
