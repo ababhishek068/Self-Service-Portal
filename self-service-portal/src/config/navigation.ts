@@ -5,7 +5,7 @@ import {
   leaveBalanceReportRoles,
   storeUsageReportRoles,
 } from '@/config/roleAccess'
-import { approverRoles, type PortalRole } from '@/config/roles'
+import type { PortalRole } from '@/config/roles'
 import {
   BadgeCheck,
   Banknote,
@@ -104,7 +104,6 @@ export const navigationMenu: NavItem[] = [
   {
     label: 'Approvals',
     icon: ClipboardCheck,
-    roles: approverRoles,
     children: [
       { label: 'Pending Approval', path: '/approvals', icon: ClipboardCopy },
       { label: 'Approved Documents', path: '/approvals/approved', icon: ClipboardCheck },
@@ -127,12 +126,18 @@ export const navigationMenu: NavItem[] = [
     ],
   },
   {
+    label: 'Reports',
+    icon: BarChart3,
+    children: [
+      { label: 'Leave Balance Report', path: '/reports/leave-balance', icon: BarChart3, roles: leaveBalanceReportRoles },
+      { label: 'Store Usage Report', path: '/reports/store-usage', icon: Store, roles: storeUsageReportRoles },
+    ],
+  },
+  {
     label: 'HR Downloads',
     icon: CloudDownload,
     children: [
       { label: 'Document Downloads', path: '/downloads/documents', icon: FileText },
-      { label: 'Leave Balance Report', path: '/reports/leave-balance', icon: BarChart3, roles: leaveBalanceReportRoles },
-      { label: 'Store Usage Report', path: '/reports/store-usage', icon: Store, roles: storeUsageReportRoles },
       { label: 'Gate Pass Log', path: '/reports/gate-pass-log', icon: DoorOpen, roles: gatePassReportRoles },
       { label: 'ERP Connector', path: '/reports/erp-connector', icon: Link2, roles: erpConnectorRoles },
     ],

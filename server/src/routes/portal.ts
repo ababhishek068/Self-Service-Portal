@@ -410,13 +410,31 @@ router.get('/reports/leave-balance', asyncHandler(async (req: AuthedRequest, res
     throw new AppError('Report access is required', 403, 'REPORT_FORBIDDEN')
   }
   const users = await listUsers()
-  res.json(users.map((user) => ({
-    employeeNo: user.employeeNo,
-    name: `${user.name} ${user.lastName}`.trim(),
-    annualBalance: user.leaveBalance,
-    used: 0,
-    department: user.departmentName,
-  })))
+  const leaveRequests = await listRequests({ module: 'leave' })
+  const usedByEmployeeAndType = new Map<string, number>()
+
+  for (const request of leaveRequests) {
+    if (request.status !== 'Approved') continue
+    const employeeNo = request.makerEmployeeNo
+    const leaveType = String(request.payload?.leaveType ?? 'ANNUAL')
+    const appliedDays = Number(request.payload?.appliedDays ?? 0)
+    const key = `${employeeNo}:${leaveType}`
+    usedByEmployeeAndType.set(key, (usedByEmployeeAndType.get(key) ?? 0) + appliedDays)
+  }
+
+  res.json(
+    users.map((row) => ({
+      employeeNo: row.employeeNo,
+      name: `${row.name} ${row.lastName}`.trim(),
+      department: row.departmentName,
+      leaveTypes: leaveTypes.map((leaveType) => ({
+        code: leaveType.code,
+        label: leaveType.description,
+        balance: leaveType.code === 'ANNUAL' ? (row.leaveBalance ?? leaveType.days) : leaveType.days,
+        used: usedByEmployeeAndType.get(`${row.employeeNo}:${leaveType.code}`) ?? 0,
+      })),
+    })),
+  )
 }))
 
 router.get('/reports/gate-pass-log', asyncHandler(async (req: AuthedRequest, res) => {

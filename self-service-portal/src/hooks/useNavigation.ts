@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { navigationMenu, type NavItem } from '@/config/navigation'
-import { hasAnyRole, type PortalRole } from '@/config/roles'
+import { canApprove, hasAnyRole, type PortalRole } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
 
 const UNDER_CONSTRUCTION_MESSAGE = '🚧 Feature under construction — coming soon!'
@@ -10,11 +10,14 @@ const UNDER_CONSTRUCTION_MESSAGE = '🚧 Feature under construction — coming s
  * allow. An item without a `roles` constraint is visible to everyone; an item
  * with one is shown only when the user holds at least one of those roles.
  */
-function filterByRoles(items: NavItem[], userRoles: PortalRole[]): NavItem[] {
+function filterByRoles(items: NavItem[], userRoles: PortalRole[], userCanApprove: boolean): NavItem[] {
   return items
-    .filter((item) => !item.roles || hasAnyRole(userRoles, item.roles))
+    .filter((item) => {
+      if (item.label === 'Approvals') return userCanApprove
+      return !item.roles || hasAnyRole(userRoles, item.roles)
+    })
     .map((item) =>
-      item.children ? { ...item, children: filterByRoles(item.children, userRoles) } : item,
+      item.children ? { ...item, children: filterByRoles(item.children, userRoles, userCanApprove) } : item,
     )
     .filter((item) => !item.children || item.children.length > 0)
 }
@@ -22,8 +25,9 @@ function filterByRoles(items: NavItem[], userRoles: PortalRole[]): NavItem[] {
 export function useNavigation() {
   const { employee } = useAuth()
   const userRoles = useMemo<PortalRole[]>(() => employee?.roles ?? [], [employee?.roles])
+  const userCanApprove = useMemo(() => canApprove(userRoles), [userRoles])
 
-  return useMemo(() => filterByRoles(navigationMenu, userRoles), [userRoles])
+  return useMemo(() => filterByRoles(navigationMenu, userRoles, userCanApprove), [userRoles, userCanApprove])
 }
 
 /**

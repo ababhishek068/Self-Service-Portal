@@ -6,7 +6,6 @@ import {
   leaveBalanceReportRoles,
   storeUsageReportRoles,
 } from '@/config/roleAccess'
-import { approverRoles } from '@/config/roles'
 import { Footer } from '@/components/layout/Footer'
 import { MainContent } from '@/components/layout/MainContent'
 import { MobileNav } from '@/components/layout/MobileNav'
@@ -114,10 +113,10 @@ export default function App() {
         <Route path="hr/document-requisition" element={<DocumentRequisition />} />
         <Route path="hr/overtime-request" element={<OvertimeRequest />} />
         <Route path="hr/travel-request" element={<TravelRequest />} />
-        <Route path="approvals" element={<RoleRoute roles={approverRoles}><PendingApprovals /></RoleRoute>} />
-        <Route path="approvals/approved" element={<RoleRoute roles={approverRoles}><ApprovedDocuments /></RoleRoute>} />
-        <Route path="approvals/rejected" element={<RoleRoute roles={approverRoles}><RejectedDocuments /></RoleRoute>} />
-        <Route path="approvals/:id" element={<RoleRoute roles={approverRoles}><ApprovalDetail /></RoleRoute>} />
+        <Route path="approvals" element={<RoleRoute requireCanApprove><PendingApprovals /></RoleRoute>} />
+        <Route path="approvals/approved" element={<RoleRoute requireCanApprove><ApprovedDocuments /></RoleRoute>} />
+        <Route path="approvals/rejected" element={<RoleRoute requireCanApprove><RejectedDocuments /></RoleRoute>} />
+        <Route path="approvals/:id" element={<RoleRoute requireCanApprove><ApprovalDetail /></RoleRoute>} />
         <Route path="ceo/master-roll" element={<RoleRoute roles={['ceo']}><MasterRoll /></RoleRoute>} />
         <Route path="hod/team-requests" element={<RoleRoute roles={['hod']}><HodTeamRequests /></RoleRoute>} />
         <Route path="hod/staff-on-leave" element={<RoleRoute roles={['hod']}><StaffOnLeave /></RoleRoute>} />

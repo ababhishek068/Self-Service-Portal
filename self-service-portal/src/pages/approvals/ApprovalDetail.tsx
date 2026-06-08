@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link, Navigate, useParams } from 'react-router-dom'
 import { Check, X } from 'lucide-react'
 import { ApprovalTimeline } from '@/components/shared/ApprovalTimeline'
@@ -12,6 +12,7 @@ import { Skeleton } from '@/components/ui/skeleton'
 import { useApprovalDecision, useApprovalDetail } from '@/hooks/useApprovals'
 import { useAuth } from '@/hooks/useAuth'
 import { usePermissions } from '@/hooks/usePermissions'
+import { extractApplicationReason } from '@/utils/applicationReason'
 import { formatCurrency, formatDateTime } from '@/utils/formatters'
 import { isMakerAllowedToApprove } from '@/utils/validators'
 
@@ -23,19 +24,41 @@ export function ApprovalDetail() {
   const [decision, setDecision] = useState<'Approved' | 'Rejected' | null>(null)
   const detail = useApprovalDetail(id ?? '')
   const approval = useApprovalDecision(id ?? '')
+  const request = detail.data
+  const applicationReason = request ? extractApplicationReason(request.payload, request.title) : ''
+  const isReadOnly =
+    request?.status === 'Approved' ||
+    request?.status === 'Rejected' ||
+    request?.status === 'Cancelled'
+  const isNotMaker = request && employee ? isMakerAllowedToApprove(request.makerEmployeeNo, employee.employeeNo) : false
+  const canApprove = hasApproverRole && isNotMaker && !isReadOnly
+
+  useEffect(() => {
+    if (request && applicationReason) {
+      setComment(applicationReason)
+    }
+  }, [request?.id, applicationReason])
 
   if (!id) return <Navigate to="/approvals" replace />
-  const request = detail.data
-  const isNotMaker = request && employee ? isMakerAllowedToApprove(request.makerEmployeeNo, employee.employeeNo) : false
-  const canApprove = hasApproverRole && isNotMaker
+
+  const backLink =
+    request?.status === 'Approved'
+      ? '/approvals/approved'
+      : request?.status === 'Rejected'
+        ? '/approvals/rejected'
+        : '/approvals'
 
   return (
     <PageWrapper
-      title="Approval Detail"
-      description="Review source document, maker/checker audit trail, and approve or reject according to ERP workflow."
+      title={isReadOnly ? 'Document View' : 'Approval Detail'}
+      description={
+        isReadOnly
+          ? 'Review the submitted document and its approval workflow.'
+          : 'Review source document, maker/checker audit trail, and approve or reject according to ERP workflow.'
+      }
       actions={
         <Button asChild variant="outline">
-          <Link to="/approvals">Back to queue</Link>
+          <Link to={backLink}>Back to queue</Link>
         </Button>
       }
     >
@@ -69,29 +92,53 @@ export function ApprovalDetail() {
                 </div>
               </div>
 
-              <div>
-                <p className="mb-2 text-sm font-semibold text-slate-900">Approval comment</p>
-                <Textarea value={comment} onChange={(event) => setComment(event.target.value)} placeholder="Add approval note" />
-              </div>
-
-              {!canApprove ? (
-                <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
-                  {!hasApproverRole
-                    ? 'Your role does not have approval authority for this document.'
-                    : 'Maker cannot approve own request.'}
+              {applicationReason ? (
+                <div className="rounded-md border border-slate-200 bg-slate-50 p-3">
+                  <p className="text-xs uppercase text-slate-500">Application reason</p>
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-slate-900">{applicationReason}</p>
                 </div>
               ) : null}
 
-              <div className="flex flex-wrap gap-2">
-                <Button disabled={!canApprove || approval.isPending} onClick={() => setDecision('Approved')}>
-                  <Check className="h-4 w-4" />
-                  Approve
-                </Button>
-                <Button variant="destructive" disabled={!canApprove || approval.isPending} onClick={() => setDecision('Rejected')}>
-                  <X className="h-4 w-4" />
-                  Reject
-                </Button>
-              </div>
+              {isReadOnly ? (
+                <div className="rounded-md border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
+                  This document is {request.status.toLowerCase()}. Use the workflow timeline on the right to review
+                  maker/checker steps and any approval comments.
+                </div>
+              ) : (
+                <>
+                  <div>
+                    <p className="mb-2 text-sm font-semibold text-slate-900">Approval comment</p>
+                    <Textarea
+                      value={comment}
+                      onChange={(event) => setComment(event.target.value)}
+                      placeholder="Add approval note (pre-filled from application reason)"
+                    />
+                  </div>
+
+                  {!canApprove ? (
+                    <div className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-800">
+                      {!hasApproverRole
+                        ? 'Your role does not have approval authority for this document.'
+                        : 'Maker cannot approve own request.'}
+                    </div>
+                  ) : null}
+
+                  <div className="flex flex-wrap gap-2">
+                    <Button disabled={!canApprove || approval.isPending} onClick={() => setDecision('Approved')}>
+                      <Check className="h-4 w-4" />
+                      Approve
+                    </Button>
+                    <Button
+                      variant="destructive"
+                      disabled={!canApprove || approval.isPending}
+                      onClick={() => setDecision('Rejected')}
+                    >
+                      <X className="h-4 w-4" />
+                      Reject
+                    </Button>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 
@@ -114,7 +161,7 @@ export function ApprovalDetail() {
         confirmLabel={decision ?? 'Submit'}
         onCancel={() => setDecision(null)}
         onConfirm={() => {
-          if (decision) approval.mutate({ decision, comment })
+          if (decision) approval.mutate({ decision, comment: comment.trim() || applicationReason })
           setDecision(null)
         }}
       />

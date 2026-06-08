@@ -18,6 +18,7 @@ interface ApprovalsListProps {
 
 export function ApprovalsList({ type, title, emptyTitle }: ApprovalsListProps) {
   const approvals = useApprovals(type)
+  const actionLabel = type === 'pending' ? 'Open' : 'View'
 
   const columns: DataTableColumn<ApprovalQueueItem>[] = [
     { id: 'requestNo', header: 'No.', cell: (row) => row.requestNo },
@@ -33,7 +34,7 @@ export function ApprovalsList({ type, title, emptyTitle }: ApprovalsListProps) {
         <Button asChild variant="action" size="sm" className="rounded-full">
           <Link to={`/approvals/${row.id}`}>
             <Eye className="h-4 w-4" />
-            Open
+            {actionLabel}
           </Link>
         </Button>
       ),

@@ -7,7 +7,9 @@ import { usePermissions } from '@/hooks/usePermissions'
 import type { PortalRole } from '@/config/roles'
 
 interface RoleRouteProps {
-  roles: PortalRole[]
+  roles?: PortalRole[]
+  /** When set, allow users who can act on the approval queue (e.g. staff + line manager). */
+  requireCanApprove?: boolean
   children: ReactNode
 }
 
@@ -16,10 +18,11 @@ interface RoleRouteProps {
  * Others see a friendly "no access" panel instead of a broken page — this
  * matters because deep links can otherwise bypass the role-filtered sidebar.
  */
-export function RoleRoute({ roles, children }: RoleRouteProps) {
-  const { has } = usePermissions()
+export function RoleRoute({ roles, requireCanApprove, children }: RoleRouteProps) {
+  const { has, canApprove } = usePermissions()
 
-  if (has(roles)) return <>{children}</>
+  if (requireCanApprove && canApprove) return <>{children}</>
+  if (roles?.length && has(roles)) return <>{children}</>
 
   return (
     <PageWrapper title="Access restricted" description="You do not have permission to view this page.">

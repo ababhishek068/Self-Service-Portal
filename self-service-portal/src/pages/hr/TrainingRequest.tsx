@@ -25,12 +25,12 @@ export function TrainingRequest() {
         { name: 'trainingTitle', label: 'Training title', type: 'text' },
         { name: 'trainingPeriod', label: 'Training period', type: 'text', placeholder: 'e.g. 5–10 Mar 2026' },
         { name: 'provider', label: 'Provider', type: 'text' },
-        { name: 'estimatedCost', label: 'Estimated cost', type: 'number' },
+        { name: 'estimatedCost', label: 'Estimated cost (optional)', type: 'number' },
         { name: 'groupName', label: 'Training group (optional)', type: 'text' },
         { name: 'justification', label: 'Justification', type: 'textarea' },
       ]}
       businessRules={[
-        'Training period, provider, and cost are mandatory.',
+        'Training period and provider are mandatory; estimated cost is optional.',
         'Submitted cards route to HR for approval.',
         'Training groups can be used for batch nominations.',
       ]}

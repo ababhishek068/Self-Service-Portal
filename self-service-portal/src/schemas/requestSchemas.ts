@@ -219,7 +219,7 @@ export const trainingNeedsSchema = z.object({
   trainingTitle: z.string().min(3, 'Training title is required'),
   trainingPeriod: z.string().min(3, 'Training period is required'),
   provider: z.string().min(2, 'Provider is required'),
-  estimatedCost: moneyField,
+  estimatedCost: z.coerce.number().min(0).optional().default(0),
   justification: z.string().min(10, 'Justification is required'),
   groupName: optionalText,
 })

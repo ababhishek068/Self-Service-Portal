@@ -10,7 +10,7 @@ export const createTrainingRequest = (payload: TrainingNeedsForm) =>
     ...payload,
     submit: true,
     title: payload.trainingTitle,
-    amount: payload.estimatedCost,
+    amount: payload.estimatedCost ?? 0,
   })
 
 export const cancelTrainingRequest = (id: string) => cancelModuleRequest(config, id)
