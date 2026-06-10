@@ -29,6 +29,7 @@ export interface AuthUser {
   userCategory: 'staff' | 'farmer'
   HOD: boolean
   CEO: boolean
+  canApprove?: boolean
   mustChangePassword: boolean
 }
 

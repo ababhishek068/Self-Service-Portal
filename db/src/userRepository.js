@@ -62,6 +62,17 @@ export async function listUsers() {
   return rows.map(toDbUser)
 }
 
+export async function listUsersByManager(managerEmployeeNo) {
+  const rows = await getPrisma().user.findMany({
+    where: {
+      managerEmployeeNo,
+      status: 'Active',
+    },
+    orderBy: { employeeNo: 'asc' },
+  })
+  return rows.map(toDbUser)
+}
+
 export async function upsertUser(input) {
   const data = {
     name: input.name,

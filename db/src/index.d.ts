@@ -66,6 +66,7 @@ export interface UpsertUserInput {
 
 export function findUserByStaffNo(employeeNo: string): Promise<DbUser | null>
 export function listUsers(): Promise<DbUser[]>
+export function listUsersByManager(managerEmployeeNo: string): Promise<DbUser[]>
 export function upsertUser(input: UpsertUserInput): Promise<DbUser>
 export function updatePassword(employeeNo: string, passwordHash: string): Promise<void>
 

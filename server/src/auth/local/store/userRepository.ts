@@ -9,6 +9,7 @@ import type { StoredUser } from '../../../types.js'
 export interface UserRepository {
   findByStaffNo(employeeNo: string): Promise<StoredUser | null>
   list(): Promise<StoredUser[]>
+  listDirectReports(managerEmployeeNo: string): Promise<StoredUser[]>
   upsert(user: StoredUser): Promise<StoredUser>
   updatePassword(employeeNo: string, passwordHash: string): Promise<void>
 }

@@ -32,7 +32,21 @@ export interface AuthUser {
   userCategory: 'staff' | 'farmer'
   HOD: boolean
   CEO: boolean
+  canApprove?: boolean
   mustChangePassword: boolean
+}
+
+export interface RegisterInput {
+  staffNo: string
+  firstName: string
+  lastName: string
+  email: string
+  password: string
+  department: string
+  departmentName: string
+  managerEmployeeNo: string
+  phoneNumber: string
+  gender: 'Male' | 'Female'
 }
 
 /** Map the backend auth user into the portal's richer `Employee` type. */
@@ -60,6 +74,7 @@ function toEmployee(user: AuthUser): Employee {
     roles,
     isCEO: roles.includes('ceo') || Boolean(user.CEO),
     isHOD: roles.includes('hod') || Boolean(user.HOD),
+    canApprove: Boolean(user.canApprove),
   }
 }
 
@@ -69,6 +84,13 @@ export async function loginRequest(staffNo: string, password: string): Promise<E
     staffNo,
     password,
   })
+  setToken(token)
+  return toEmployee(user)
+}
+
+export async function registerRequest(input: RegisterInput): Promise<Employee> {
+  requireAuthApiUrl()
+  const { token, user } = await authPost<{ token: string; user: AuthUser }>('/api/auth/register', input)
   setToken(token)
   return toEmployee(user)
 }

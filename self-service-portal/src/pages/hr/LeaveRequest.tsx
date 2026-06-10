@@ -91,7 +91,8 @@ export function LeaveRequest() {
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
 
-  const showSecondary = leaveType !== '' && balance !== null && balance > 0 && !pendingDuplicate
+  const showSecondary = leaveType !== '' && balance !== null && !pendingDuplicate && !balanceLoading
+  const canSubmit = showSecondary && balance > 0
 
   useEffect(() => {
     setEndDate('')
@@ -189,8 +190,14 @@ export function LeaveRequest() {
 
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault()
-    if (!leaveType || !reason || !endDate) {
+    const submittedStartDate = isHourly ? startDateTime.slice(0, 10) : startDate
+    const submittedDays = isHourly ? Number(appliedHours || 0) : Number(appliedDays || 0)
+    if (!leaveType || !reason.trim() || !endDate || !submittedStartDate || !submittedDays) {
       setError('Please complete all required fields.')
+      return
+    }
+    if (balance !== null && submittedDays > balance) {
+      setError(`Insufficient leave balance. Available: ${balance} day(s).`)
       return
     }
     if (!window.confirm('Are you sure you want to submit this leave application?')) return
@@ -198,18 +205,18 @@ export function LeaveRequest() {
     try {
       const result = await submitLeaveRequest({
         leaveType,
-        appliedDays: Number(appliedDays || 0),
-        startDate,
+        appliedDays: submittedDays,
+        startDate: submittedStartDate,
         isHalfDayLeave: halfDay,
         reliever,
         reason,
       })
       if (result.ok) {
-        setSuccess(result.message ?? 'Leave application submitted successfully.')
-        setError(null)
         await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
         await queryClient.invalidateQueries({ queryKey: ['hr', 'leave-list'] })
         resetForm()
+        setSuccess(result.message ?? 'Leave application submitted successfully.')
+        setError(null)
       } else {
         setError(result.message ?? 'Submission failed.')
       }
@@ -279,6 +286,11 @@ export function LeaveRequest() {
 
           {showSecondary ? (
             <div className="space-y-4 border-t border-slate-200 pt-4">
+              {balance <= 0 ? (
+                <div className="rounded border-l-4 border-amber-500 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+                  You have no available leave balance for this type. Contact HR if you believe this is incorrect.
+                </div>
+              ) : null}
               <div className="grid gap-3 sm:grid-cols-3 sm:gap-4">
                 {!isHourly ? (
                   <div className="space-y-1.5">
@@ -396,7 +408,7 @@ export function LeaveRequest() {
                   type="submit"
                   variant="accent"
                   className="min-w-[140px] rounded-full"
-                  disabled={submittingForm}
+                  disabled={submittingForm || !canSubmit}
                 >
                   {submittingForm ? 'Submitting…' : 'Submit'}
                 </Button>

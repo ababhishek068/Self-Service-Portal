@@ -123,7 +123,7 @@ const seeds: SeedSpec[] = [
     placeOfDuty: 'Head Office',
     accountNumber: '',
     managerEmployeeNo: 'EMP-01002',
-    leaveBalance: 0,
+    leaveBalance: 21,
     responsibleCenter: 'HO-FIN',
     permissionDepartments: ['FIN'],
     phoneNumber: '',

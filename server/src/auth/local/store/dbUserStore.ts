@@ -33,6 +33,12 @@ export class DbUserStore implements UserRepository {
     return users as StoredUser[]
   }
 
+  async listDirectReports(managerEmployeeNo: string): Promise<StoredUser[]> {
+    const db = await this.db()
+    const users = await db.listUsersByManager(managerEmployeeNo)
+    return users as StoredUser[]
+  }
+
   async upsert(user: StoredUser): Promise<StoredUser> {
     const db = await this.db()
     const saved = await db.upsertUser(user)

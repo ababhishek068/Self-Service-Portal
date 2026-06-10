@@ -52,6 +52,8 @@ export interface Employee extends BusinessCentralEntity {
   isCEO?: boolean
   /** True when the employee leads a department (HOD function group). */
   isHOD?: boolean
+  /** True when the employee can approve documents, including staff managers with direct reports. */
+  canApprove?: boolean
 }
 
 export interface Attachment {

@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { navigationMenu, type NavItem } from '@/config/navigation'
-import { canApprove, hasAnyRole, type PortalRole } from '@/config/roles'
+import { hasAnyRole, type PortalRole } from '@/config/roles'
 import { useAuth } from '@/hooks/useAuth'
 
 const UNDER_CONSTRUCTION_MESSAGE = '🚧 Feature under construction — coming soon!'
@@ -25,7 +25,7 @@ function filterByRoles(items: NavItem[], userRoles: PortalRole[], userCanApprove
 export function useNavigation() {
   const { employee } = useAuth()
   const userRoles = useMemo<PortalRole[]>(() => employee?.roles ?? [], [employee?.roles])
-  const userCanApprove = useMemo(() => canApprove(userRoles), [userRoles])
+  const userCanApprove = Boolean(employee?.canApprove)
 
   return useMemo(() => filterByRoles(navigationMenu, userRoles, userCanApprove), [userRoles, userCanApprove])
 }

@@ -7,12 +7,14 @@ export const leaveTypes = [
   '--select--',
   'Annual Leave',
   'Postnatal Leave/Maternity',
-  'Wedding leave',
+  'Wedding Leave',
   'Mourning Leave',
-  'Sick leave',
-  'leave without Pay',
+  'Sick Leave',
+  'Leave Without Pay',
   'Special Leave',
   'Prenatal Leave/Maternity',
+  'Paternity Leave',
+  'Half Day Leave',
 ] as const
 
 export type LeaveTypeOption = (typeof leaveTypes)[number]

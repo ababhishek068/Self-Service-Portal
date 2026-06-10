@@ -47,6 +47,24 @@ const leaveTypes = [
   { code: 'HALFDAY', description: 'Half Day Leave', days: 4, isHourly: true },
 ]
 
+function findLeaveType(typeCode: string) {
+  return leaveTypes.find((row) => row.code === typeCode)
+}
+
+/** Annual allocation from the user record, falling back to the leave-type default when unset (0). */
+function annualLeaveEntitlement(user: StoredUser, leaveTypeDays: number): number {
+  const stored = user.leaveBalance ?? 0
+  return stored > 0 ? stored : leaveTypeDays
+}
+
+function leaveEntitlement(user: StoredUser, typeCode: string) {
+  const leaveType = findLeaveType(typeCode)
+  if (!leaveType) return { leaveType: undefined, entitlement: 0, isHourly: false }
+  const entitlement =
+    typeCode === 'ANNUAL' ? annualLeaveEntitlement(user, leaveType.days) : leaveType.days
+  return { leaveType, entitlement, isHourly: leaveType.isHourly }
+}
+
 const itemMaster = [
   { itemCode: 'ST032', code: 'ST032', description: 'Photocopy paper', uom: 'REAM', availableStock: 150 },
   { itemCode: 'ST067', code: 'ST067', description: 'Toner cartridge', uom: 'PCS', availableStock: 24 },
@@ -126,6 +144,31 @@ function nextWorkingDay(date: Date) {
   return cursor
 }
 
+function calculateLeaveDates(appliedDays: number, startDate: string, halfDay: string) {
+  const start = parseDate(startDate)
+  if (!start) throw new AppError('Start date is invalid', 422, 'INVALID_LEAVE_START_DATE')
+  if (isWeekend(start)) throw new AppError('Leave start date cannot be on a weekend', 422, 'LEAVE_WEEKEND_START')
+
+  if (halfDay !== '0' || appliedDays <= 0.5) {
+    return {
+      endDate: isoDate(start),
+      returnDate: isoDate(nextWorkingDay(start)),
+    }
+  }
+
+  let remaining = Math.ceil(appliedDays) - 1
+  let cursor = start
+  while (remaining > 0) {
+    cursor = addDays(cursor, 1)
+    if (!isWeekend(cursor)) remaining -= 1
+  }
+
+  return {
+    endDate: isoDate(cursor),
+    returnDate: isoDate(nextWorkingDay(cursor)),
+  }
+}
+
 function calcHoursWorked(timeIn: string, timeOut: string): string {
   const [inH, inM] = timeIn.split(':').map(Number)
   const [outH, outM] = timeOut.split(':').map(Number)
@@ -140,6 +183,12 @@ function scopedDepartments(user: StoredUser) {
 function payloadText(payload: Record<string, unknown> | undefined, key: string, fallback = '') {
   const value = payload?.[key]
   return value === undefined || value === null ? fallback : String(value)
+}
+
+async function userCanApproveWorkflow(user: StoredUser) {
+  if (canUserApprove(user)) return true
+  const directReports = await userStore.listDirectReports(user.employeeNo)
+  return directReports.length > 0
 }
 
 router.use(requireAuth)
@@ -215,7 +264,7 @@ router.delete('/requests/:id', asyncHandler(async (req: AuthedRequest, res) => {
 
 router.get('/approvals', asyncHandler(async (req: AuthedRequest, res) => {
   const user = await currentUser(req)
-  if (!canUserApprove(user)) {
+  if (!(await userCanApproveWorkflow(user))) {
     throw new AppError('Approval access is required', 403, 'APPROVAL_FORBIDDEN')
   }
   const type = typeof req.query.type === 'string' ? req.query.type : 'pending'
@@ -225,7 +274,7 @@ router.get('/approvals', asyncHandler(async (req: AuthedRequest, res) => {
 
 router.post('/approvals/:id/decide', asyncHandler(async (req: AuthedRequest, res) => {
   const user = await currentUser(req)
-  if (!canUserApprove(user)) {
+  if (!(await userCanApproveWorkflow(user))) {
     throw new AppError('Approval access is required', 403, 'APPROVAL_FORBIDDEN')
   }
   const row = await getRequestById(req.params.id)
@@ -247,7 +296,7 @@ router.post('/approvals/:id/decide', asyncHandler(async (req: AuthedRequest, res
 
 router.get('/approvals/count/:type/:status', asyncHandler(async (req: AuthedRequest, res) => {
   const user = await currentUser(req)
-  if (!canUserApprove(user)) {
+  if (!(await userCanApproveWorkflow(user))) {
     res.json({ totalAll: 0, isNotified: false })
     return
   }
@@ -262,9 +311,24 @@ router.get('/dashboard/summary', asyncHandler(async (req: AuthedRequest, res) =>
 }))
 
 router.get('/profile/details', asyncHandler(async (req: AuthedRequest, res) => {
+  const user = await currentUser(req)
   const profile = await getEmployeeProfile(currentEmployeeNo(req))
-  if (!profile) throw new AppError('Employee profile was not found', 404, 'PROFILE_NOT_FOUND')
-  res.json(profile)
+  res.json(profile ?? {
+    employeeNo: user.employeeNo,
+    sector: '',
+    division: '',
+    district: '',
+    maritalStatus: '',
+    employmentType: '',
+    dateOfJoin: '',
+    contractStartDate: '',
+    contractEndDate: '',
+    probationEndDate: '',
+    nextOfKin: [],
+    employmentHistory: [],
+    qualifications: [],
+    assignedAssets: [],
+  })
 }))
 
 router.get('/leave/types', (_req, res) => {
@@ -284,13 +348,17 @@ router.get('/leave/relievers', asyncHandler(async (req: AuthedRequest, res) => {
 router.get('/leave/balance/:type', asyncHandler(async (req: AuthedRequest, res) => {
   const user = await currentUser(req)
   const type = req.params.type
-  const pendingRows = await listRequests({ module: 'leave', employeeNo: user.employeeNo })
-  const pendingCount = pendingRows.filter((row) => row.status === 'Pending Approval' && row.payload?.leaveType === type).length
-  const leaveType = leaveTypes.find((row) => row.code === type)
+  const leaveRows = await listRequests({ module: 'leave', employeeNo: user.employeeNo })
+  const matchingRows = leaveRows.filter((row) => row.payload?.leaveType === type)
+  const pendingCount = matchingRows.filter((row) => row.status === 'Pending Approval').length
+  const approvedUsed = matchingRows
+    .filter((row) => ['Approved', 'Posted'].includes(row.status))
+    .reduce((sum, row) => sum + Number(row.payload?.appliedDays ?? 0), 0)
+  const { entitlement, isHourly } = leaveEntitlement(user, type)
   res.json({
-    balance: user.leaveBalance ?? leaveType?.days ?? 0,
+    balance: Math.max(0, entitlement - approvedUsed),
     pendingCount,
-    isHourly: Boolean(leaveType?.isHourly),
+    isHourly,
   })
 }))
 
@@ -325,7 +393,8 @@ router.get('/leave', asyncHandler(async (req: AuthedRequest, res) => {
   res.json({
     rows: rows.map((row) => ({
       ApplicationCode: row.requestNo,
-      LeaveType: String(row.payload?.leaveType ?? row.title),
+      LeaveType: String(row.payload?.leaveTypeDescription ?? row.payload?.leaveType ?? row.title),
+      LeaveTypeCode: String(row.payload?.leaveType ?? ''),
       ApplicationDate: row.createdAt.slice(0, 10),
       DaysApplied: Number(row.payload?.appliedDays ?? 0),
       StartDate: String(row.payload?.startDate ?? ''),
@@ -340,10 +409,56 @@ router.get('/leave', asyncHandler(async (req: AuthedRequest, res) => {
 router.post('/leave', asyncHandler(async (req: AuthedRequest, res) => {
   const user = await currentUser(req)
   const approver = await resolveApprover(user)
-  const leaveType = leaveTypes.find((row) => row.code === req.body?.leaveType)
-  await createRequest({
+  const leaveTypeCode = String(req.body?.leaveType ?? '')
+  const { leaveType, entitlement } = leaveEntitlement(user, leaveTypeCode)
+  if (!leaveType) throw new AppError('Leave type is invalid', 422, 'INVALID_LEAVE_TYPE')
+
+  const appliedDays = Number(req.body?.appliedDays ?? 0)
+  if (!Number.isFinite(appliedDays) || appliedDays <= 0) {
+    throw new AppError('Applied days must be greater than zero', 422, 'INVALID_LEAVE_DAYS')
+  }
+
+  const reason = String(req.body?.reason ?? '').trim()
+  if (!reason) throw new AppError('Leave reason is required', 422, 'MISSING_REASON')
+
+  const startDate = String(req.body?.startDate ?? '').trim()
+  if (!startDate) throw new AppError('Start date is required', 422, 'MISSING_START_DATE')
+
+  const leaveRows = await listRequests({ module: 'leave', employeeNo: user.employeeNo })
+  const matchingRows = leaveRows.filter((row) => row.payload?.leaveType === leaveTypeCode)
+  const pendingCount = matchingRows.filter((row) => row.status === 'Pending Approval').length
+  if (pendingCount > 0) {
+    throw new AppError(
+      'You cannot apply a new leave while there is another one of the same type that is pending approval.',
+      422,
+      'PENDING_LEAVE_EXISTS',
+    )
+  }
+
+  const approvedUsed = matchingRows
+    .filter((row) => ['Approved', 'Posted'].includes(row.status))
+    .reduce((sum, row) => sum + Number(row.payload?.appliedDays ?? 0), 0)
+  const availableBalance = Math.max(0, entitlement - approvedUsed)
+  if (appliedDays > availableBalance) {
+    throw new AppError(`Insufficient leave balance. Available: ${availableBalance} day(s).`, 422, 'INSUFFICIENT_BALANCE')
+  }
+
+  const halfDay = String(req.body?.isHalfDayLeave ?? '0')
+  const dates = calculateLeaveDates(appliedDays, startDate, halfDay)
+  const payload = {
+    ...req.body,
+    leaveType: leaveType.code,
+    leaveTypeDescription: leaveType.description,
+    appliedDays,
+    startDate,
+    endDate: dates.endDate,
+    returnDate: dates.returnDate,
+    reason,
+  }
+
+  const row = await createRequest({
     requestType: 'leave',
-    title: `${leaveType?.description ?? req.body?.leaveType ?? 'Leave'} — ${req.body?.appliedDays ?? 0} day(s)`,
+    title: `${leaveType.description} — ${appliedDays} day(s)`,
     status: 'Pending Approval',
     makerEmployeeNo: user.employeeNo,
     makerName: displayName(user),
@@ -354,10 +469,10 @@ router.post('/leave', asyncHandler(async (req: AuthedRequest, res) => {
     sourceDocumentEntity: 'leave',
     approverEmployeeNo: approver.employeeNo,
     approverName: approver.name,
-    payload: req.body,
+    payload,
     attachments: [],
   })
-  res.status(201).json({ ok: true, message: 'Leave application submitted successfully.' })
+  res.status(201).json({ ok: true, message: 'Leave application submitted successfully.', request: row })
 }))
 
 router.post('/leave/cancel', asyncHandler(async (req: AuthedRequest, res) => {
@@ -365,6 +480,8 @@ router.post('/leave/cancel', asyncHandler(async (req: AuthedRequest, res) => {
   const row = (await getRequestByNo(no)) ?? (await getRequestById(no))
   if (!row) throw new AppError('Leave request was not found', 404)
   const user = await currentUser(req)
+  if (row.makerEmployeeNo !== user.employeeNo) throw new AppError('Only the maker can cancel this leave request', 403)
+  if (!['Draft', 'Pending Approval'].includes(row.status)) throw new AppError('Only draft or pending leave requests can be cancelled', 422)
   await updateRequestStatus(row.id, {
     status: 'Cancelled',
     actorEmployeeNo: user.employeeNo,
@@ -430,7 +547,10 @@ router.get('/reports/leave-balance', asyncHandler(async (req: AuthedRequest, res
       leaveTypes: leaveTypes.map((leaveType) => ({
         code: leaveType.code,
         label: leaveType.description,
-        balance: leaveType.code === 'ANNUAL' ? (row.leaveBalance ?? leaveType.days) : leaveType.days,
+        balance:
+          leaveType.code === 'ANNUAL'
+            ? annualLeaveEntitlement(row, leaveType.days)
+            : leaveType.days,
         used: usedByEmployeeAndType.get(`${row.employeeNo}:${leaveType.code}`) ?? 0,
       })),
     })),

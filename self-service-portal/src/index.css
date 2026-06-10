@@ -655,6 +655,37 @@ textarea {
     var(--portal-content-bg);
 }
 
+/* Auth split-screen layout */
+.portal-auth-page {
+  background: #f8fafc;
+}
+
+.portal-auth-brand {
+  background: linear-gradient(
+    155deg,
+    #001a33 0%,
+    var(--portal-navy-dark) 28%,
+    var(--portal-navy) 55%,
+    #003d7a 100%
+  );
+  box-shadow: 4px 0 40px rgba(0, 0, 0, 0.12);
+}
+
+.portal-auth-brand-grid {
+  background-image:
+    linear-gradient(rgba(255, 255, 255, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255, 255, 255, 0.04) 1px, transparent 1px);
+  background-size: 48px 48px;
+  opacity: 0.6;
+}
+
+.portal-auth-form {
+  background:
+    radial-gradient(ellipse 80% 60% at 100% 0%, rgba(0, 51, 102, 0.04), transparent 50%),
+    radial-gradient(ellipse 60% 50% at 0% 100%, rgba(227, 82, 5, 0.03), transparent 45%),
+    #f8fafc;
+}
+
 .portal-table-wrap {
   position: relative;
   border-radius: 0.5rem;
@@ -759,7 +790,8 @@ textarea {
   .portal-topbar-glow,
   .portal-logo-float,
   .portal-orb,
-  .portal-stagger > * {
+  .portal-stagger > *,
+  .portal-auth-form [class*='translate-x'] {
     animation: none !important;
     transition: none !important;
   }

@@ -50,6 +50,13 @@ export class JsonUserStore implements UserRepository {
     return [...users.values()]
   }
 
+  async listDirectReports(managerEmployeeNo: string): Promise<StoredUser[]> {
+    const users = await this.load()
+    return [...users.values()].filter(
+      (user) => user.managerEmployeeNo === managerEmployeeNo && user.status === 'Active',
+    )
+  }
+
   async upsert(user: StoredUser): Promise<StoredUser> {
     const users = await this.load()
     users.set(user.employeeNo, user)

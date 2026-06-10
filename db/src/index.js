@@ -1,6 +1,7 @@
 export { getPrisma, disconnect } from './client.js'
 export {
   findUserByStaffNo,
+  listUsersByManager,
   listUsers,
   upsertUser,
   updatePassword,

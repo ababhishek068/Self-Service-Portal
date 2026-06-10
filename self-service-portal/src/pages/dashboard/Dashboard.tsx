@@ -40,6 +40,8 @@ interface DashboardTile {
   chip: string
   /** When set, only show this tile to users holding one of these roles. */
   roles?: PortalRole[]
+  /** Show this tile when backend says the user can approve, even if their role is staff. */
+  requiresApproval?: boolean
 }
 
 const tiles: DashboardTile[] = [
@@ -51,6 +53,7 @@ const tiles: DashboardTile[] = [
     tone: 'from-rose-500 via-rose-500 to-rose-600',
     chip: 'bg-white/20',
     roles: approverRoles,
+    requiresApproval: true,
   },
   {
     id: 'approvedDocuments',
@@ -60,6 +63,7 @@ const tiles: DashboardTile[] = [
     tone: 'from-sky-500 via-sky-500 to-blue-600',
     chip: 'bg-white/20',
     roles: approverRoles,
+    requiresApproval: true,
   },
   {
     id: 'rejectedDocuments',
@@ -69,6 +73,7 @@ const tiles: DashboardTile[] = [
     tone: 'from-emerald-500 via-emerald-500 to-emerald-600',
     chip: 'bg-white/20',
     roles: approverRoles,
+    requiresApproval: true,
   },
   {
     id: 'leaveApplications',
@@ -139,7 +144,10 @@ export function Dashboard() {
       : !env.AUTH_API_URL
         ? BACKEND_NOT_CONFIGURED
         : null
-  const visibleTiles = tiles.filter((tile) => !tile.roles || has(tile.roles))
+  const visibleTiles = tiles.filter((tile) => {
+    if (tile.requiresApproval) return canApprove
+    return !tile.roles || has(tile.roles)
+  })
   const pendingCount = tileValues.pendingApprovals ?? 0
 
   const activityColumns: DataTableColumn<PortalRequest>[] = [

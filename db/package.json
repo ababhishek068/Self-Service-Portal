@@ -18,6 +18,7 @@
     "migrate:deploy": "prisma migrate deploy",
     "studio": "prisma studio",
     "seed": "node prisma/seed.js",
+    "reset:leave": "node scripts/resetLeave.js",
     "create-user": "node scripts/createUser.js",
     "postinstall": "prisma generate"
   },

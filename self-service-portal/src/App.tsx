@@ -14,6 +14,7 @@ import { Topbar } from '@/components/layout/Topbar'
 import { LayoutProvider } from '@/context/LayoutContext'
 import { useAuth } from '@/hooks/useAuth'
 import { Login } from '@/pages/auth/Login'
+import { Register } from '@/pages/auth/Register'
 import { ApprovalDetail } from '@/pages/approvals/ApprovalDetail'
 import { ApprovedDocuments } from '@/pages/approvals/ApprovedDocuments'
 import { PendingApprovals } from '@/pages/approvals/PendingApprovals'
@@ -87,6 +88,7 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
+      <Route path="/register" element={<Register />} />
       <Route element={<ProtectedLayout />}>
         <Route index element={<Dashboard />} />
         <Route path="finance/imprest" element={<ImprestRequest />} />

@@ -27,6 +27,7 @@ export function usePermissions() {
   return useMemo(() => {
     const roles = employee?.roles ?? []
     const primary = primaryRole(roles)
+    const canApprove = canApproveRoles(roles) || Boolean(employee?.canApprove)
     return {
       roles,
       primaryRole: primary,
@@ -36,7 +37,7 @@ export function usePermissions() {
       has: (required: PortalRole | PortalRole[]) =>
         hasAnyRole(roles, Array.isArray(required) ? required : [required]),
       /** Can act on the approval queue (approve/reject documents). */
-      canApprove: canApproveRoles(roles),
+      canApprove,
       isCEO: roles.includes('ceo'),
       isHOD: roles.includes('hod'),
       isFinance: roles.includes('finance'),
@@ -46,7 +47,9 @@ export function usePermissions() {
       canViewGatePassReport: hasAnyRole(roles, gatePassReportRoles),
       canViewErpConnector: hasAnyRole(roles, erpConnectorRoles),
       capabilitySummary: roleCapabilitySummary[primary] ?? roleCapabilitySummary.staff ?? '',
-      quickLinks: roleQuickLinks.filter((link) => hasAnyRole(roles, link.roles)),
+      quickLinks: roleQuickLinks.filter((link) =>
+        link.href === '/approvals' ? canApprove : hasAnyRole(roles, link.roles),
+      ),
     }
-  }, [employee?.roles])
+  }, [employee?.canApprove, employee?.roles])
 }

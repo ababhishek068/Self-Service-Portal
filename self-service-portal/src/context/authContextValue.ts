@@ -1,4 +1,5 @@
 import { createContext } from 'react'
+import type { RegisterInput } from '@/api/endpoints/auth'
 import type { Employee } from '@/types/erp.types'
 
 export interface AuthContextValue {
@@ -11,6 +12,7 @@ export interface AuthContextValue {
   /** Last login error message, if any. */
   error: string | null
   login: (employeeNo: string, password: string) => Promise<void>
+  register: (input: RegisterInput) => Promise<void>
   logout: () => void | Promise<void>
 }
 

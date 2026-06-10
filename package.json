@@ -16,6 +16,7 @@
     "db:migrate": "npm --prefix db run migrate",
     "db:deploy": "npm --prefix db run migrate:deploy",
     "db:seed": "npm --prefix db run seed",
+    "db:reset-leave": "npm --prefix db run reset:leave",
     "db:studio": "npm --prefix db run studio",
     "db:create-user": "npm --prefix db run create-user --"
   }

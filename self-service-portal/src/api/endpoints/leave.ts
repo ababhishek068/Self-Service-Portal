@@ -66,6 +66,7 @@ export async function getLeaveDates(
 export interface LeaveListRow {
   ApplicationCode: string
   LeaveType: string
+  LeaveTypeCode?: string
   ApplicationDate?: string
   DaysApplied?: number
   StartDate?: string
