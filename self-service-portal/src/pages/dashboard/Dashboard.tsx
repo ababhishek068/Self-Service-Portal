@@ -14,11 +14,10 @@ import {
   Sparkles,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import { getToken } from '@/api/client/authClient'
+import { getToken, resolveApiBaseUrl } from '@/api/client/authClient'
 import { BACKEND_NOT_CONFIGURED } from '@/api/requireBackend'
 import { getDashboardSummary } from '@/api/endpoints/employee'
 import { PageWrapper } from '@/components/layout/PageWrapper'
-import { env } from '@/config/env'
 import { DataTable, type DataTableColumn } from '@/components/shared/DataTable'
 import { StatusBadge } from '@/components/shared/StatusBadge'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -128,8 +127,9 @@ const tiles: DashboardTile[] = [
 export function Dashboard() {
   const { employee, isAuthenticated, bootstrapped } = useAuth()
   const { has, canApprove, primaryRoleLabel, capabilitySummary, quickLinks } = usePermissions()
+  const apiBase = resolveApiBaseUrl()
   const canFetchSummary =
-    bootstrapped && isAuthenticated && Boolean(env.AUTH_API_URL) && Boolean(getToken())
+    bootstrapped && isAuthenticated && Boolean(apiBase) && Boolean(getToken())
   const summary = useQuery({
     queryKey: ['dashboard'],
     queryFn: getDashboardSummary,
@@ -141,7 +141,7 @@ export function Dashboard() {
   const summaryError =
     summary.error instanceof Error
       ? summary.error.message
-      : !env.AUTH_API_URL
+      : !apiBase
         ? BACKEND_NOT_CONFIGURED
         : null
   const visibleTiles = tiles.filter((tile) => {
@@ -162,7 +162,7 @@ export function Dashboard() {
     <PageWrapper title="Dashboard">
       {!canFetchSummary && bootstrapped ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900">
-          {!env.AUTH_API_URL
+          {!apiBase
             ? BACKEND_NOT_CONFIGURED
             : 'Sign in again to load dashboard data from the server.'}
         </div>
@@ -172,9 +172,9 @@ export function Dashboard() {
         <div className="mb-4 rounded-lg border border-red-200 bg-red-50 p-4 text-sm text-red-800">
           <p className="font-semibold">Dashboard could not load</p>
           <p className="mt-1">{summaryError ?? 'Request failed. Is the backend running?'}</p>
-          {env.AUTH_API_URL ? (
+          {apiBase ? (
             <p className="mt-2 text-xs text-red-700">
-              Expected API: <code className="rounded bg-red-100 px-1">{env.AUTH_API_URL}/api/dashboard/summary</code>
+              Expected API: <code className="rounded bg-red-100 px-1">{apiBase}/api/dashboard/summary</code>
             </p>
           ) : null}
         </div>

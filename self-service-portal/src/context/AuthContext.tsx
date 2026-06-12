@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { fetchCurrentUser, loginRequest, logoutRequest, registerRequest, type RegisterInput } from '@/api/endpoints/auth'
+import { fetchCurrentUser, loginRequest, logoutRequest, registerRequest, type AuthProvider, type RegisterInput } from '@/api/endpoints/auth'
 import { AuthContext, type AuthContextValue } from './authContextValue'
 import type { Employee } from '@/types/erp.types'
 
@@ -27,11 +27,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }, [])
 
-  const login = useCallback(async (staffNo: string, password: string) => {
+  const login = useCallback(async (staffNo: string, password: string, provider: AuthProvider = 'application') => {
     setSubmitting(true)
     setError(null)
     try {
-      const next = await loginRequest(staffNo, password)
+      const next = await loginRequest(staffNo, password, provider)
       setEmployee(next)
     } catch (err: unknown) {
       const message = err instanceof Error ? err.message : 'Login failed'

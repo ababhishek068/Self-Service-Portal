@@ -2,10 +2,15 @@ const read = (key: string, fallback = '') => import.meta.env[key] ?? fallback
 
 export const env = {
   /**
-   * Base URL of the Node JWT + portal API (required). All portal data comes from
-   * this backend — there is no mock or hardcoded fallback.
+   * Base URL of the Node JWT + portal API (application-user login).
    */
   AUTH_API_URL: read('VITE_AUTH_API_URL'),
+
+  /**
+   * Business Central ERP backend (BC365 sign-in).
+   * Defaults to AUTH_API_URL when unset (single-backend setups).
+   */
+  BC_API_URL: read('VITE_BC_API_URL') || read('VITE_AUTH_API_URL'),
 
   /** Legacy Laravel ESS — not used when AUTH_API_URL is set. */
   ESS_API_URL: read('VITE_ESS_API_URL'),

@@ -1,11 +1,15 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Link, useNavigate } from 'react-router-dom'
+import { SignInModeDialog } from '@/components/auth/SignInModeDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { signInModeOptions, type SignInMode } from '@/config/signInModes'
 import { useAuth } from '@/hooks/useAuth'
 import { brand } from '@/config/brand'
+
+const SIGN_IN_MODE_KEY = 'ssp.signInMode'
 
 export function Login() {
   const navigate = useNavigate()
@@ -13,6 +17,15 @@ export function Login() {
   const [staffNo, setStaffNo] = useState('')
   const [password, setPassword] = useState('')
   const [localError, setLocalError] = useState<string | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [selectedMode, setSelectedMode] = useState<SignInMode>(() => {
+    try {
+      const stored = sessionStorage.getItem(SIGN_IN_MODE_KEY) as SignInMode | null
+      return stored && signInModeOptions.some((option) => option.id === stored) ? stored : 'application'
+    } catch {
+      return 'application'
+    }
+  })
 
   useEffect(() => {
     if (bootstrapped && isAuthenticated) {
@@ -20,7 +33,38 @@ export function Login() {
     }
   }, [bootstrapped, isAuthenticated, navigate])
 
-  const handleFormSubmit = async (event: FormEvent) => {
+  useEffect(() => {
+    if (!dialogOpen) return
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !submitting) setDialogOpen(false)
+    }
+    document.addEventListener('keydown', closeOnEscape)
+    return () => document.removeEventListener('keydown', closeOnEscape)
+  }, [dialogOpen, submitting])
+
+  const runSignIn = async (mode: SignInMode) => {
+    setSelectedMode(mode)
+    try {
+      sessionStorage.setItem(SIGN_IN_MODE_KEY, mode)
+    } catch {
+      /* ignore */
+    }
+    setDialogOpen(false)
+    setLocalError(null)
+
+    if (mode === 'ad') {
+      setLocalError('Active Directory sign-in is not configured yet. Choose Application User or BC365 User.')
+      return
+    }
+
+    try {
+      await login(staffNo.trim(), password, mode === 'bc365' ? 'bc365' : 'application')
+    } catch {
+      /* auth context displays the error */
+    }
+  }
+
+  const handleFormSubmit = (event: FormEvent) => {
     event.preventDefault()
     setLocalError(null)
 
@@ -29,14 +73,12 @@ export function Login() {
       return
     }
 
-    try {
-      await login(staffNo.trim(), password)
-    } catch {
-      /* auth context displays the error */
-    }
+    setDialogOpen(true)
   }
 
   const displayError = localError ?? error
+  const selectedLabel =
+    signInModeOptions.find((option) => option.id === selectedMode)?.label ?? signInModeOptions[0].label
 
   if (!bootstrapped || isAuthenticated) {
     return (
@@ -68,7 +110,7 @@ export function Login() {
         </div>
 
         <div className="portal-form-card animate-page-in-subtle w-full" style={{ animationDelay: '80ms' }}>
-          <div className="portal-form-card-header px-4 py-3 text-center text-sm font-semibold tracking-wide text-white sm:text-base">
+          <div className="portal-form-card-header relative px-4 py-3 text-center text-sm font-semibold tracking-wide text-white sm:text-base">
             Sign In
           </div>
 
@@ -121,6 +163,10 @@ export function Login() {
               )}
             </Button>
 
+            {selectedMode !== 'application' ? (
+              <p className="text-center text-[11px] text-slate-500">Last selected: {selectedLabel}</p>
+            ) : null}
+
             <p className="text-center text-sm text-slate-600">
               Don&apos;t have an account?{' '}
               <Link to="/register" className="font-semibold text-[var(--portal-navy)] hover:underline">
@@ -134,6 +180,13 @@ export function Login() {
           © {new Date().getFullYear()} {brand.company}. All rights reserved.
         </p>
       </div>
+
+      <SignInModeDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onSelect={(mode) => void runSignIn(mode)}
+        disabled={submitting}
+      />
     </main>
   )
 }

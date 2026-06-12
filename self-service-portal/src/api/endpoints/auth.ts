@@ -1,5 +1,5 @@
-import { authGet, authPost, clearToken, getToken, setToken } from '@/api/client/authClient'
-import { requireAuthApiUrl } from '@/api/requireBackend'
+import { authGet, authPost, clearToken, getToken, setApiBaseUrl, setToken } from '@/api/client/authClient'
+import { requireApplicationApiUrl, requireAuthApiUrl, requireBcApiUrl } from '@/api/requireBackend'
 import { deriveRoles } from '@/config/roles'
 import type { Employee } from '@/types/erp.types'
 
@@ -78,8 +78,15 @@ function toEmployee(user: AuthUser): Employee {
   }
 }
 
-export async function loginRequest(staffNo: string, password: string): Promise<Employee> {
-  requireAuthApiUrl()
+export type AuthProvider = 'application' | 'bc365'
+
+export async function loginRequest(
+  staffNo: string,
+  password: string,
+  provider: AuthProvider = 'application',
+): Promise<Employee> {
+  const baseUrl = provider === 'bc365' ? requireBcApiUrl() : requireApplicationApiUrl()
+  setApiBaseUrl(baseUrl)
   const { token, user } = await authPost<{ token: string; user: AuthUser }>('/api/auth/login', {
     staffNo,
     password,
@@ -89,7 +96,8 @@ export async function loginRequest(staffNo: string, password: string): Promise<E
 }
 
 export async function registerRequest(input: RegisterInput): Promise<Employee> {
-  requireAuthApiUrl()
+  const baseUrl = requireApplicationApiUrl()
+  setApiBaseUrl(baseUrl)
   const { token, user } = await authPost<{ token: string; user: AuthUser }>('/api/auth/register', input)
   setToken(token)
   return toEmployee(user)

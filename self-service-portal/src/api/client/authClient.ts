@@ -10,6 +10,40 @@ import { env } from '@/config/env'
  */
 
 const TOKEN_KEY = 'ssp.authToken'
+const API_BASE_KEY = 'ssp.apiBaseUrl'
+
+export function getApiBaseUrl(): string {
+  try {
+    return localStorage.getItem(API_BASE_KEY) || ''
+  } catch {
+    return ''
+  }
+}
+
+export function setApiBaseUrl(url: string): void {
+  try {
+    localStorage.setItem(API_BASE_KEY, url.replace(/\/$/, ''))
+  } catch {
+    /* ignore */
+  }
+}
+
+export function clearApiBaseUrl(): void {
+  try {
+    localStorage.removeItem(API_BASE_KEY)
+  } catch {
+    /* ignore */
+  }
+}
+
+export function resolveApiBaseUrl(preferred?: 'application' | 'bc365'): string {
+  if (preferred === 'bc365') {
+    return (env.BC_API_URL || env.AUTH_API_URL || '').replace(/\/$/, '')
+  }
+  const stored = getApiBaseUrl()
+  if (stored) return stored
+  return (env.AUTH_API_URL || env.BC_API_URL || '').replace(/\/$/, '')
+}
 
 export function getToken(): string | null {
   try {
@@ -33,6 +67,7 @@ export function clearToken(): void {
   } catch {
     /* ignore */
   }
+  clearApiBaseUrl()
 }
 
 export const authHttp: AxiosInstance = axios.create({
@@ -42,6 +77,10 @@ export const authHttp: AxiosInstance = axios.create({
 })
 
 authHttp.interceptors.request.use((config) => {
+  const base = resolveApiBaseUrl()
+  if (base) {
+    config.baseURL = base
+  }
   const token = getToken()
   if (token) {
     config.headers.set?.('Authorization', `Bearer ${token}`)
