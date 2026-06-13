@@ -48,6 +48,7 @@ export const env = {
   isProd,
 
   PORT: num('PORT', 4000),
+  HOST: str('HOST', '0.0.0.0'),
 
   /** Which login strategy is active. 'local' = our own user table (now). 'bc' = Business Central (later). */
   AUTH_PROVIDER,

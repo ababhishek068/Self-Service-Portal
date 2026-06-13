@@ -36,13 +36,31 @@ export function clearApiBaseUrl(): void {
   }
 }
 
+function browserApiBaseUrl(port?: string): string {
+  if (typeof window === 'undefined') return ''
+  if (!port) return window.location.origin
+  const url = new URL(window.location.origin)
+  url.port = port
+  return url.origin
+}
+
 export function resolveApiBaseUrl(preferred?: 'application' | 'bc365'): string {
   if (preferred === 'bc365') {
-    return (env.BC_API_URL || env.AUTH_API_URL || '').replace(/\/$/, '')
+    return (
+      env.BC_API_URL ||
+      browserApiBaseUrl(env.BC_API_PORT) ||
+      env.AUTH_API_URL ||
+      browserApiBaseUrl()
+    ).replace(/\/$/, '')
   }
   const stored = getApiBaseUrl()
   if (stored) return stored
-  return (env.AUTH_API_URL || env.BC_API_URL || '').replace(/\/$/, '')
+  return (
+    env.AUTH_API_URL ||
+    browserApiBaseUrl(env.AUTH_API_PORT) ||
+    env.BC_API_URL ||
+    browserApiBaseUrl()
+  ).replace(/\/$/, '')
 }
 
 export function getToken(): string | null {

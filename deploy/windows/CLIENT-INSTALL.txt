@@ -1,0 +1,32 @@
+SELF SERVICE PORTAL - CLIENT HOST INSTALLATION
+==============================================
+
+Required software installed separately on the Windows host:
+1. Node.js LTS x64
+2. MySQL Server 8.x
+
+The application ZIP already includes production JavaScript dependencies and
+the Windows Prisma query engine. Internet access is not required after the ZIP
+and software installers have been transferred.
+
+Expected extraction directory:
+C:\SelfServiceSuite
+
+Read:
+C:\SelfServiceSuite\SelfServicePortal\HOSTING-ALL-PROJECTS.md
+
+Quick order:
+1. Configure MySQL as an automatic Windows service.
+2. Edit create-database.sql.example and execute it as MySQL root.
+3. Run SelfServicePortal\deploy\windows\initialize-schema.bat.
+4. Create db\.env, server\.env and SelfServiceBackend\.env from their examples.
+5. Create at least one Application User if that login mode is required:
+   cd C:\SelfServiceSuite\SelfServicePortal\db
+   node scripts\createUser.js --staffNo EMP-00123 --name "Jane Doe" --password "TemporaryPassword123" --department FIN
+6. Verify erp-app-uat DNS and ports 2447/2448 from the host.
+7. Run open-suite-firewall.ps1 as Administrator.
+8. Run start-suite.bat.
+9. Open http://HOST-IP:4000 from another PC.
+10. After testing, run install-suite-startup.ps1 as Administrator.
+
+Do not expose MySQL port 3306 to client devices or the internet.

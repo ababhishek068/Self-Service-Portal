@@ -7,14 +7,14 @@ import react from '@vitejs/plugin-react'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 // https://vite.dev/config/
-export default defineConfig({
-  // Use relative asset paths so the built `dist/` folder works under any
-  // sub-path (IIS virtual dir, nginx alias, file://, etc.) without rebuilding.
-  base: './',
+export default defineConfig(({ mode }) => ({
+  // The single-host deployment is served at the site root, so nested SPA
+  // routes must load assets from /assets rather than a route-relative path.
+  base: mode === 'onprem' ? '/' : './',
   plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),
     },
   },
-})
+}))
