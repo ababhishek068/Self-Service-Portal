@@ -6,7 +6,6 @@ import {
   leaveBalanceReportRoles,
   storeUsageReportRoles,
 } from '@/config/roleAccess'
-import { Footer } from '@/components/layout/Footer'
 import { MainContent } from '@/components/layout/MainContent'
 import { MobileNav } from '@/components/layout/MobileNav'
 import { Sidebar } from '@/components/layout/Sidebar'
@@ -14,7 +13,8 @@ import { Topbar } from '@/components/layout/Topbar'
 import { LayoutProvider } from '@/context/LayoutContext'
 import { useAuth } from '@/hooks/useAuth'
 import { Login } from '@/pages/auth/Login'
-import { Register } from '@/pages/auth/Register'
+import { ForgotPassword } from '@/pages/auth/ForgotPassword'
+import { ResetPassword } from '@/pages/auth/ResetPassword'
 import { ApprovalDetail } from '@/pages/approvals/ApprovalDetail'
 import { ApprovedDocuments } from '@/pages/approvals/ApprovedDocuments'
 import { PendingApprovals } from '@/pages/approvals/PendingApprovals'
@@ -77,7 +77,6 @@ function ProtectedLayout() {
             <MainContent />
           </div>
         </div>
-        <Footer />
         <MobileNav />
       </div>
     </LayoutProvider>
@@ -88,7 +87,9 @@ export default function App() {
   return (
     <Routes>
       <Route path="/login" element={<Login />} />
-      <Route path="/register" element={<Register />} />
+      <Route path="/forgot-password" element={<ForgotPassword />} />
+      <Route path="/reset-password/:staffNo" element={<ResetPassword />} />
+      <Route path="/register" element={<Navigate to="/forgot-password" replace />} />
       <Route element={<ProtectedLayout />}>
         <Route index element={<Dashboard />} />
         <Route path="finance/imprest" element={<ImprestRequest />} />
@@ -103,7 +104,10 @@ export default function App() {
         <Route path="facility/maintenance-request" element={<MaintenanceRequest />} />
         <Route path="facility/transfer-order" element={<TransferOrder />} />
         <Route path="facility/work-tickets" element={<WorkTickets />} />
-        <Route path="facility/gate-pass" element={<GatePass />} />
+        <Route path="facility/gate-pass" element={<Navigate to="/facility/gate-pass/store-requisition" replace />} />
+        <Route path="facility/gate-pass/store-requisition" element={<GatePass source="storeIssue" />} />
+        <Route path="facility/gate-pass/transfer-orders" element={<GatePass source="transferOrder" />} />
+        <Route path="facility/gate-pass/asset-transfer" element={<GatePass source="assetTransfer" />} />
         <Route path="facility/vehicle-transfer" element={<VehicleTransfer />} />
         <Route path="hr/leave-request" element={<LeaveRequest />} />
         <Route path="hr/leave-statement" element={<LeaveStatement />} />
@@ -115,10 +119,10 @@ export default function App() {
         <Route path="hr/document-requisition" element={<DocumentRequisition />} />
         <Route path="hr/overtime-request" element={<OvertimeRequest />} />
         <Route path="hr/travel-request" element={<TravelRequest />} />
-        <Route path="approvals" element={<RoleRoute requireCanApprove><PendingApprovals /></RoleRoute>} />
-        <Route path="approvals/approved" element={<RoleRoute requireCanApprove><ApprovedDocuments /></RoleRoute>} />
-        <Route path="approvals/rejected" element={<RoleRoute requireCanApprove><RejectedDocuments /></RoleRoute>} />
-        <Route path="approvals/:id" element={<RoleRoute requireCanApprove><ApprovalDetail /></RoleRoute>} />
+        <Route path="approvals" element={<PendingApprovals />} />
+        <Route path="approvals/approved" element={<ApprovedDocuments />} />
+        <Route path="approvals/rejected" element={<RejectedDocuments />} />
+        <Route path="approvals/:id" element={<ApprovalDetail />} />
         <Route path="ceo/master-roll" element={<RoleRoute roles={['ceo']}><MasterRoll /></RoleRoute>} />
         <Route path="hod/team-requests" element={<RoleRoute roles={['hod']}><HodTeamRequests /></RoleRoute>} />
         <Route path="hod/staff-on-leave" element={<RoleRoute roles={['hod']}><StaffOnLeave /></RoleRoute>} />

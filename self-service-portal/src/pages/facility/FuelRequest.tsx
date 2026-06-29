@@ -1,34 +1,62 @@
-import { formatISO } from 'date-fns'
-import { createFuelRequest, listFuelRequests } from '@/api/endpoints/fuelRequest'
-import { RequestFormPage } from '@/components/shared/RequestFormPage'
-import { fuelRequestSchema, type FuelRequestForm } from '@/schemas/requestSchemas'
+import { MultiStepRequestPage } from '@/components/shared/MultiStepRequestPage'
+import { listModuleRequests } from '@/api/endpoints/requestEndpoint'
+import { fuelRequestTypeOptions } from '@/data/essOptions'
+import { fuelHeaderSchema } from '@/schemas/requestSchemas'
+import { useLookupOptions } from '@/hooks/useLookupOptions'
 
-const today = formatISO(new Date(), { representation: 'date' })
+const module = { module: 'fuelRequest', entity: 'selfServiceFuelRequests' } as const
 
 export function FuelRequest() {
+  const fuelCards = useLookupOptions('fuel-cards')
+  const vehicles = useLookupOptions('vehicles')
+  const vendors = useLookupOptions('vendors')
+
   return (
-    <RequestFormPage
+    <MultiStepRequestPage
       title="Fuel Requisition"
-      description="Request fuel against vehicle, driver, odometer, and trip purpose with ERP transport linkage."
-      schema={fuelRequestSchema}
+      headerLabel="New Fuel Requisition Card"
+      description="Request fuel against a vehicle or a fuel recharge card, then submit for approval."
+      module={module}
       queryKey={['facility', 'fuel-request']}
-      listRequests={listFuelRequests}
-      createRequest={(values) => createFuelRequest(values as FuelRequestForm)}
-      source="Facility requirements workbook"
-      defaultValues={{ requestDate: today, vehicleNo: '', driverName: '', liters: 0, odometer: 0, purpose: '' }}
-      fields={[
-        { name: 'requestDate', label: 'Request date', type: 'date' },
-        { name: 'vehicleNo', label: 'Vehicle number', type: 'text' },
-        { name: 'driverName', label: 'Driver name', type: 'text' },
-        { name: 'liters', label: 'Fuel liters', type: 'number' },
-        { name: 'odometer', label: 'Odometer', type: 'number' },
-        { name: 'purpose', label: 'Purpose', type: 'textarea' },
+      listRequests={() => listModuleRequests(module)}
+      newButtonLabel="New Fuel Requisition"
+      headerSchema={fuelHeaderSchema}
+      headerDefaults={{
+        requestType: '0',
+        cardNo: '',
+        vehicleNo: '',
+        fuelDealer: '',
+        quantity: 0,
+        price: 0,
+        purpose: '',
+      }}
+      buildHeaderPayload={(values) => ({
+        ...values,
+        title: String(values.purpose || 'Fuel Requisition'),
+      })}
+      headerFields={[
+        { name: 'requestType', label: 'Request Type', type: 'select', options: fuelRequestTypeOptions, valuePaths: ['RequestType', 'Request_Type'], valueMap: { 'vehicle fuel': '0', vehicle: '0', 'fuel recharge card': '3', card: '3' } },
+        { name: 'cardNo', label: 'Fuel Card No.', type: 'select', options: fuelCards.options, valuePaths: ['CardNo', 'Card_No'] },
+        { name: 'vehicleNo', label: 'Vehicle Registration No.', type: 'select', options: vehicles.options, valuePaths: ['VehicleNo', 'Vehicle_No'] },
+        { name: 'fuelDealer', label: 'Fuel Dealer', type: 'select', options: vendors.options, valuePaths: ['FuelDealer', 'Fuel_Dealer'] },
+        { name: 'quantity', label: 'Quantity of Fuel (Litres)', type: 'number', valuePaths: ['Quantity'] },
+        { name: 'price', label: 'Fuel Price per Litre', type: 'number', valuePaths: ['Price'] },
+        { name: 'purpose', label: 'Purpose', type: 'textarea', valuePaths: ['Purpose'] },
       ]}
-      moduleConfig={{ module: 'fuelRequest', entity: 'selfServiceFuelRequests' }}
+      detailFields={[
+        { label: 'Requisition No.', paths: ['request.requestNo'] },
+        { label: 'Request Type', paths: ['payload.RequestType', 'payload.Request_Type'] },
+        { label: 'Fuel Card No.', paths: ['payload.CardNo', 'payload.Card_No'] },
+        { label: 'Vehicle No.', paths: ['payload.VehicleNo', 'payload.Vehicle_No'] },
+        { label: 'Fuel Dealer', paths: ['payload.FuelDealer', 'payload.Fuel_Dealer'] },
+        { label: 'Quantity (Litres)', paths: ['payload.Quantity'] },
+        { label: 'Price per Litre', paths: ['payload.Price'], format: 'currency' },
+        { label: 'Purpose', paths: ['payload.Purpose'] },
+        { label: 'Status', paths: ['request.status'], format: 'status' },
+      ]}
       businessRules={[
-        'Fuel issue links to transport request or work ticket.',
-        'Vehicle and odometer are mandatory for audit trail.',
-        'ERP posts fuel reference back to the source document.',
+        'Vehicle fuel requires a vehicle registration number; a recharge card requires a card number.',
+        'Capture the dealer, quantity and price per litre, then request approval.',
       ]}
     />
   )

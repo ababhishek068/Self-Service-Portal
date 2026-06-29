@@ -1,9 +1,6 @@
-import { formatISO } from 'date-fns'
 import { createSalaryAdvanceRequest, listSalaryAdvanceRequests } from '@/api/endpoints/salaryAdvance'
 import { RequestFormPage } from '@/components/shared/RequestFormPage'
 import { salaryAdvanceSchema, type SalaryAdvanceForm } from '@/schemas/requestSchemas'
-
-const today = formatISO(new Date(), { representation: 'date' })
 
 export function SalaryAdvance() {
   return (
@@ -15,18 +12,31 @@ export function SalaryAdvance() {
       listRequests={listSalaryAdvanceRequests}
       createRequest={(values) => createSalaryAdvanceRequest(values as SalaryAdvanceForm)}
       moduleConfig={{ module: 'salaryAdvance', entity: 'selfServiceSalaryAdvanceRequests' }}
-      defaultValues={{ requestDate: today, amount: 0, reason: '', repaymentMonths: 3 }}
+      defaultValues={{ purpose: '', percentageSalary: 0 }}
       fields={[
-        { name: 'requestDate', label: 'Request date', type: 'date' },
-        { name: 'amount', label: 'Advance amount', type: 'number' },
-        { name: 'repaymentMonths', label: 'Repayment period (months)', type: 'number' },
-        { name: 'reason', label: 'Reason', type: 'textarea', placeholder: 'State the reason for the advance' },
+        { name: 'purpose', label: 'Purpose', type: 'textarea', placeholder: 'State the purpose of the advance', valuePaths: ['Purpose'] },
+        { name: 'percentageSalary', label: 'Percentage of salary', type: 'number', valuePaths: ['PercentageofSalary', 'lines.0.PercentageofSalary', 'lines.0.PercentageOfSalary'] },
       ]}
       businessRules={[
-        'Request date must equal the ERP working date.',
+        'The percentage cannot exceed 100 percent of salary.',
         'Advance routes through payroll approval workflow.',
-        'Repayment is deducted over the selected months.',
+        'Repayment terms are calculated in Business Central.',
       ]}
+      detailFields={[
+        { label: 'Request No.', paths: ['request.requestNo'] },
+        { label: 'Requested Date', paths: ['payload.Date', 'payload.RequestedDate', 'request.createdAt'], format: 'date' },
+        { label: 'Purpose', paths: ['payload.Purpose', 'payload.purpose'] },
+        { label: 'Status', paths: ['request.status'], format: 'status' },
+      ]}
+      detailLineLabel="Salary Advance Line"
+      detailLineColumns={[
+        { label: 'Date Taken', paths: ['DateTaken', 'Date_Taken'], format: 'date' },
+        { label: 'Type', paths: ['AdvanceType', 'Advance_Type'] },
+        { label: 'Purpose', paths: ['Purpose', 'purpose'] },
+        { label: 'Percentage of Salary', paths: ['PercentageofSalary', 'PercentageOfSalary', 'Percentage_of_Salary'], format: 'percentage' },
+        { label: 'Amount', paths: ['Amount', 'amount'], format: 'currency' },
+      ]}
+      hideDetailAttachments
     />
   )
 }

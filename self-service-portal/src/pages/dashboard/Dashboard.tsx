@@ -184,27 +184,31 @@ export function Dashboard() {
         <Skeleton className="h-48 w-full" />
       ) : summary.data ? (
         <div className="space-y-6">
-          <div className="portal-welcome animate-page-in-subtle flex items-center justify-between gap-4 p-4 sm:p-5">
-            <div className="min-w-0">
-              <p className="flex items-center gap-1.5 text-xs font-medium text-slate-600 sm:text-sm">
-                <Sparkles className="h-4 w-4 text-[var(--portal-orange)]" />
-                Welcome back
-              </p>
-              <p className="mt-0.5 flex flex-wrap items-center gap-2 truncate text-xl font-bold tracking-tight text-[var(--portal-navy)] sm:text-2xl">
-                Hi {firstName}
-                <span className="rounded-full bg-[var(--portal-navy)]/10 px-2 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-[var(--portal-navy)]">
-                  {primaryRoleLabel}
-                </span>
-              </p>
-              <p className="mt-1 text-xs text-slate-500 sm:text-sm">
-                Welcome to the {brand.product} — {new Date().getFullYear()} Summary
-              </p>
-              {capabilitySummary ? (
-                <p className="mt-2 text-xs text-slate-600 sm:text-sm">{capabilitySummary}</p>
-              ) : null}
-            </div>
-            <div className="hidden h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-[var(--portal-navy)] to-[var(--portal-orange)] text-2xl font-bold text-white shadow-lg sm:flex">
-              {firstName.charAt(0).toUpperCase()}
+          <div className="animate-page-in-subtle relative overflow-hidden rounded-2xl bg-gradient-to-br from-[var(--portal-navy)] via-[var(--portal-navy)] to-emerald-700 p-5 text-white shadow-lg sm:p-7">
+            <div className="pointer-events-none absolute -right-12 -top-12 h-48 w-48 rounded-full bg-[var(--portal-orange)]/25 blur-2xl" />
+            <div className="pointer-events-none absolute -bottom-16 right-32 h-40 w-40 rounded-full bg-white/10 blur-2xl" />
+            <div className="relative flex items-center justify-between gap-4">
+              <div className="min-w-0">
+                <p className="flex items-center gap-1.5 text-xs font-medium text-white/75 sm:text-sm">
+                  <Sparkles className="h-4 w-4 text-[var(--portal-orange)]" />
+                  Welcome back
+                </p>
+                <p className="mt-1 flex flex-wrap items-center gap-2 text-2xl font-bold tracking-tight sm:text-3xl">
+                  Hi {firstName}
+                  <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-[11px] font-semibold uppercase tracking-wide text-white backdrop-blur">
+                    {primaryRoleLabel}
+                  </span>
+                </p>
+                <p className="mt-1 text-xs text-white/70 sm:text-sm">
+                  Welcome to the {brand.product} — {new Date().getFullYear()} Summary
+                </p>
+                {capabilitySummary ? (
+                  <p className="mt-2 max-w-2xl text-xs text-white/80 sm:text-sm">{capabilitySummary}</p>
+                ) : null}
+              </div>
+              <div className="hidden h-16 w-16 shrink-0 items-center justify-center rounded-2xl bg-white/15 text-3xl font-bold text-white ring-4 ring-white/20 backdrop-blur sm:flex">
+                {firstName.charAt(0).toUpperCase()}
+              </div>
             </div>
           </div>
 
@@ -256,20 +260,21 @@ export function Dashboard() {
                 <Link
                   key={tile.id}
                   to={tile.href}
-                  className={`group relative flex items-center gap-3 overflow-hidden rounded-xl bg-gradient-to-br ${tile.tone} p-3 text-white shadow-md transition-all duration-200 hover:-translate-y-1 hover:shadow-xl sm:gap-4 sm:p-4`}
+                  className={`group relative flex min-h-24 items-center gap-3 overflow-hidden rounded-2xl bg-gradient-to-br ${tile.tone} p-3 text-white shadow-md ring-1 ring-white/10 transition-all duration-200 hover:-translate-y-1.5 hover:shadow-2xl hover:ring-white/30 sm:gap-4 sm:p-4`}
                 >
+                  <div className="pointer-events-none absolute -right-6 -top-8 h-20 w-20 rounded-full bg-white/15 blur-xl transition-opacity duration-200 group-hover:opacity-80" />
                   <div
-                    className={`flex h-10 w-10 shrink-0 items-center justify-center rounded-lg ${tile.chip} ring-1 ring-white/30 transition-transform duration-200 group-hover:scale-110 sm:h-12 sm:w-12`}
+                    className={`relative flex h-10 w-10 shrink-0 items-center justify-center rounded-xl ${tile.chip} ring-1 ring-white/30 transition-transform duration-200 group-hover:scale-110 group-hover:-rotate-3 sm:h-12 sm:w-12`}
                   >
                     <Icon className="h-5 w-5 sm:h-6 sm:w-6" />
                   </div>
-                  <div className="min-w-0 flex-1">
-                    <p className="text-2xl font-bold leading-tight sm:text-3xl">{value}</p>
+                  <div className="relative min-w-0 flex-1">
+                    <p key={value} className="animate-count-pop text-2xl font-bold leading-tight tabular-nums drop-shadow-sm sm:text-3xl">{value}</p>
                     <p className="mt-0.5 truncate text-[11px] font-medium uppercase tracking-wide text-white/85 sm:text-xs">
                       {tile.label}
                     </p>
                   </div>
-                  <ArrowRight className="hidden h-4 w-4 shrink-0 text-white/70 transition-transform duration-200 group-hover:translate-x-1 sm:block" />
+                  <ArrowRight className="relative hidden h-4 w-4 shrink-0 text-white/70 transition-transform duration-200 group-hover:translate-x-1 sm:block" />
                 </Link>
               )
             })}
@@ -283,6 +288,11 @@ export function Dashboard() {
               getRowId={(row) => row.id}
               compact
             />
+          </div>
+
+          <div className="animate-page-in-subtle rounded-2xl border border-[var(--portal-navy)]/10 bg-white/80 px-5 py-4 text-center shadow-sm backdrop-blur" style={{ animationDelay: '180ms' }}>
+            <p className="text-sm font-semibold text-[var(--portal-navy)]">Powered by {brand.companyShort}</p>
+            <p className="mt-1 text-xs text-slate-500">Secure employee self-service connected to Business Central</p>
           </div>
         </div>
       ) : null}

@@ -8,9 +8,8 @@ export const listSalaryAdvanceRequests = () => listModuleRequests(config)
 export const createSalaryAdvanceRequest = (payload: SalaryAdvanceForm) =>
   createModuleRequest(config, {
     ...payload,
-    submit: true,
-    title: `Salary advance — ${payload.reason.slice(0, 40)}`,
-    amount: payload.amount,
+    title: `Salary advance - ${payload.purpose.slice(0, 40)}`,
+    amount: 0,
   })
 
 export const cancelSalaryAdvanceRequest = (id: string) => cancelModuleRequest(config, id)

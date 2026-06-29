@@ -1,81 +1,90 @@
 import { formatISO } from 'date-fns'
-import { createPurchaseRequisition, listPurchaseRequisitions } from '@/api/endpoints/purchaseRequisition'
-import { RequestFormPage } from '@/components/shared/RequestFormPage'
-import { departments } from '@/data/departments'
-import { useEmployeeDefaults } from '@/hooks/useEmployeeDefaults'
-import { useAuth } from '@/hooks/useAuth'
-import { purchaseRequisitionSchema, type PurchaseRequisitionForm } from '@/schemas/requestSchemas'
+import { MultiStepRequestPage } from '@/components/shared/MultiStepRequestPage'
+import { listModuleRequests } from '@/api/endpoints/requestEndpoint'
+import { purchaseLineTypeOptions } from '@/data/essOptions'
+import { purchaseHeaderSchema, purchaseLineSchema } from '@/schemas/requestSchemas'
+import { useLookupOptions } from '@/hooks/useLookupOptions'
 
 const today = formatISO(new Date(), { representation: 'date' })
-const departmentOptions = departments.map((department) => ({ label: department.name, value: department.code }))
+const module = { module: 'purchaseRequisition', entity: 'selfServicePurchaseRequisitions' } as const
 
 export function PurchaseRequisition() {
-  const { departmentCode, responsibleCenter } = useEmployeeDefaults()
-  const { employee } = useAuth()
+  const locations = useLookupOptions('locations')
+  const items = useLookupOptions('items')
+  const assets = useLookupOptions('assets')
+  const services = useLookupOptions('services')
 
   return (
-    <RequestFormPage
+    <MultiStepRequestPage
       title="Purchase Requisition"
-      description="Create item, service, or fixed asset purchase requisitions with specs, brand, stake, attachment, and approval actions."
-      schema={purchaseRequisitionSchema}
+      headerLabel="New Purchase Requisition"
+      description="Create the purchase header, then add item lines with location and reason before requesting approval."
+      module={module}
       queryKey={['facility', 'purchase-requisition']}
-      listRequests={listPurchaseRequisitions}
-      createRequest={(values) => createPurchaseRequisition(values as PurchaseRequisitionForm)}
-      source="Facility requirements workbook"
-      defaultValues={{
-        requestDate: today,
-        departmentCode,
-        responsibleCenter,
-        reason: '',
-        lines: [
-          {
-            itemType: 'Item',
-            quantity: 1,
-            uom: 'Pcs',
-            description: '',
-            brand: '',
-            standard: '',
-            specification: '',
-            stake: employee?.departmentName ?? '',
-            amount: 0,
-          },
-        ],
-        attachments: [],
-      }}
-      fields={[
-        { name: 'requestDate', label: 'Request date', type: 'date' },
-        { name: 'departmentCode', label: 'Department', type: 'select', options: departmentOptions },
-        { name: 'responsibleCenter', label: 'Responsible center', type: 'text' },
-        { name: 'reason', label: 'Business reason', type: 'textarea' },
-        {
-          name: 'lines',
-          label: 'Purchase lines',
-          type: 'lineItems',
-          defaultLine: { itemType: 'Item', quantity: 1, uom: 'Pcs', description: '', brand: '', standard: '', specification: '', stake: '', amount: 0 },
-          fields: [
-            {
-              name: 'itemType',
-              label: 'Type',
-              type: 'select',
-              options: ['Item', 'Service', 'Fixed Asset'].map((value) => ({ label: value, value })),
-            },
-            { name: 'quantity', label: 'Qty', type: 'number' },
-            { name: 'uom', label: 'UoM', type: 'text' },
-            { name: 'description', label: 'Description', type: 'text' },
-            { name: 'brand', label: 'Brand', type: 'text' },
-            { name: 'standard', label: 'Standard', type: 'text' },
-            { name: 'specification', label: 'Specification', type: 'text' },
-            { name: 'stake', label: 'Stakeholder', type: 'text' },
-            { name: 'amount', label: 'Amount', type: 'number' },
-          ],
-        },
-        { name: 'attachments', label: 'Attachment', type: 'files' },
+      listRequests={() => listModuleRequests(module)}
+      newButtonLabel="New Request"
+      headerSchema={purchaseHeaderSchema}
+      headerDefaults={{ dateNeeded: today, description: '' }}
+      buildHeaderPayload={(values) => ({
+        ...values,
+        orderDate: values.dateNeeded,
+        postingDescription: values.description,
+        reason: values.description,
+        title: String(values.description || 'Purchase Requisition'),
+      })}
+      headerFields={[
+        { name: 'dateNeeded', label: 'Needed By Date', type: 'date', valuePaths: ['Needed_By_Date', 'OrderDate', 'Order_Date'] },
+        { name: 'description', label: 'Description', type: 'textarea', valuePaths: ['Posting_Description', 'PostingDescription'] },
       ]}
-      moduleConfig={{ module: 'purchaseRequisition', entity: 'selfServicePurchaseRequisitions' }}
+      detailFields={[
+        { label: 'Requisition No.', paths: ['request.requestNo'] },
+        { label: 'Needed By Date', paths: ['payload.Needed_By_Date', 'payload.OrderDate', 'payload.Order_Date'], format: 'date' },
+        { label: 'Description', paths: ['payload.Posting_Description', 'payload.PostingDescription'] },
+        { label: 'Department', paths: ['request.departmentName', 'request.departmentCode', 'payload.ShortcutDimension2Code'] },
+        { label: 'Responsibility Center', paths: ['request.responsibleCenter', 'payload.ResponsibilityCenter'] },
+        { label: 'Status', paths: ['request.status'], format: 'status' },
+      ]}
+      line={{
+        label: 'Purchase Lines',
+        addLabel: 'New Line',
+        schema: purchaseLineSchema,
+        defaultValues: { itemNo: '', location: '', reasonForRequest: '', quantity: 1, type: '2' },
+        buildLinePayload: (values) => ({
+          ...values,
+          whereNeeded: values.location,
+          reason: values.reasonForRequest,
+        }),
+        fields: [
+          { name: 'type', label: 'Type', type: 'select', options: purchaseLineTypeOptions },
+          {
+            name: 'itemNo',
+            label: 'Item / Service No.',
+            type: 'select',
+            optionsByField: {
+              field: 'type',
+              options: { '1': services.options, '2': items.options, '4': assets.options },
+            },
+          },
+          { name: 'location', label: 'Location (optional)', type: 'select', options: locations.options },
+          { name: 'quantity', label: 'Quantity', type: 'number' },
+          { name: 'reasonForRequest', label: 'Reason for Request', type: 'textarea' },
+        ],
+        columns: [
+          { key: 'type', header: 'Type' },
+          { key: 'itemNo', header: 'No.' },
+          { key: 'description', header: 'Description' },
+          { key: 'reasonForRequest', header: 'Purpose' },
+          { key: 'quantity', header: 'Quantity' },
+          { key: 'unitOfMeasure', header: 'Unit' },
+          { key: 'location', header: 'Location' },
+        ],
+        emptyText: '*** No Purchase Lines Found ***',
+        canEdit: false,
+      }}
       businessRules={[
-        'Duplicate purchase requests within 24 hours are blocked.',
-        'Approval workflow supports cancel, reject, and amend.',
-        'Item, service, and fixed asset lines capture brand, standard, specification, stake, and attachment.',
+        'Create the header with needed-by date and description.',
+        'Each line requires a type, number, quantity and purpose; location is optional.',
+        'Attach specifications, then request approval.',
       ]}
     />
   )

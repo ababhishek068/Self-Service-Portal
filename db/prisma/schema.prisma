@@ -78,12 +78,37 @@ model PortalRequest {
   auditTrail           Json      @map("audit_trail")
   createdAt            DateTime  @default(now()) @map("created_at")
   updatedAt            DateTime  @updatedAt @map("updated_at")
+  files                PortalAttachment[]
 
   @@index([requestType])
   @@index([status])
   @@index([makerEmployeeNo])
   @@index([approverEmployeeNo])
   @@map("portal_requests")
+}
+
+/// Binary documents uploaded against workflow requests or employee profiles.
+/// File content is base64 because MySQL LONGTEXT is portable across the
+/// supported client installations and matches the Business Central SOAP API.
+model PortalAttachment {
+  id            String         @id @default(cuid())
+  scope         String         @default("request")
+  ownerKey      String         @map("owner_key")
+  requestId     String?        @map("request_id")
+  request       PortalRequest? @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  documentNo    String         @default("") @map("document_no")
+  tableId       Int            @default(0) @map("table_id")
+  fileName      String         @map("file_name")
+  mimeType      String         @default("application/octet-stream") @map("mime_type")
+  size          Int            @default(0)
+  description   String         @default("")
+  contentBase64 String         @db.LongText @map("content_base64")
+  uploadedBy    String         @default("") @map("uploaded_by")
+  createdAt     DateTime       @default(now()) @map("created_at")
+
+  @@index([requestId])
+  @@index([scope, ownerKey])
+  @@map("portal_attachments")
 }
 
 /// Employee attendance sign-in/sign-out records.

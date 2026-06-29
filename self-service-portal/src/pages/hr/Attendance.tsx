@@ -11,6 +11,7 @@ import { DataTable, type DataTableColumn } from '@/components/shared/DataTable'
 import { Button } from '@/components/ui/button'
 import type { AttendanceRow } from '@/api/endpoints/attendance'
 import { usePermissions } from '@/hooks/usePermissions'
+import { useToast } from '@/components/feedback/ToastProvider'
 
 export function Attendance() {
   const { isHOD } = usePermissions()
@@ -18,6 +19,8 @@ export function Attendance() {
   const [confirmSignOut, setConfirmSignOut] = useState(false)
   const [locationStatus, setLocationStatus] = useState<string>('')
   const [fetchingLocation, setFetchingLocation] = useState(false)
+  const [attendanceAction, setAttendanceAction] = useState<'in' | 'out' | null>(null)
+  const toast = useToast()
 
   const attendanceQuery = useQuery({
     queryKey: ['attendance', 'mine'],
@@ -31,6 +34,13 @@ export function Attendance() {
 
   const rows = attendanceQuery.data ?? []
   const hodTeamRows = teamAttendanceQuery.data ?? []
+  const now = new Date()
+  const todayKey = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`
+  const todayRecord = rows.find((row) => row.date.slice(0, 10) === todayKey)
+  const signedInToday = Boolean(todayRecord?.timeIn)
+  const signedOutToday = Boolean(todayRecord?.timeOut)
+
+  const formatClock = (value: string) => value ? value.replace(/\.\d+$/, '') : '—'
 
   const captureLocation = (): Promise<string> =>
     new Promise((resolve) => {
@@ -46,26 +56,48 @@ export function Attendance() {
     })
 
   const signIn = async () => {
-    setFetchingLocation(true)
-    const location = await captureLocation()
-    setFetchingLocation(false)
-    setLocationStatus(location)
-    await signInAttendance(location)
-    await queryClient.invalidateQueries({ queryKey: ['attendance'] })
+    setAttendanceAction('in')
+    try {
+      setFetchingLocation(true)
+      const location = await captureLocation()
+      setFetchingLocation(false)
+      setLocationStatus(location)
+      const result = await signInAttendance(location)
+      await queryClient.invalidateQueries({ queryKey: ['attendance'] })
+      toast.success(result.comments || 'Attendance recorded successfully.', 'Signed in')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Attendance sign-in failed.', 'Sign-in failed')
+    } finally {
+      setFetchingLocation(false)
+      setAttendanceAction(null)
+    }
   }
 
-  const signOut = () => {
-    signOutAttendance()
-      .then(() => queryClient.invalidateQueries({ queryKey: ['attendance'] }))
-      .finally(() => setConfirmSignOut(false))
+  const signOut = async () => {
+    setAttendanceAction('out')
+    try {
+      setFetchingLocation(true)
+      const location = await captureLocation()
+      setFetchingLocation(false)
+      setLocationStatus(location)
+      const result = await signOutAttendance(location)
+      await queryClient.invalidateQueries({ queryKey: ['attendance'] })
+      toast.success(result.comments || 'Attendance sign-out recorded.', 'Signed out')
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Attendance sign-out failed.', 'Sign-out failed')
+    } finally {
+      setFetchingLocation(false)
+      setConfirmSignOut(false)
+      setAttendanceAction(null)
+    }
   }
 
   const columns: DataTableColumn<AttendanceRow>[] = [
     { id: 'date', header: 'Date', cell: (row) => row.date },
     { id: 'staff', header: 'Staff Name', cell: (row) => row.staffName },
-    { id: 'in', header: 'Time In', cell: (row) => row.timeIn },
-    { id: 'out', header: 'Time Out', cell: (row) => row.timeOut || '—' },
-    { id: 'hours', header: 'Hours Worked', cell: (row) => row.hoursWorked || '—' },
+    { id: 'in', header: 'Time In', cell: (row) => formatClock(row.timeIn) },
+    { id: 'out', header: 'Time Out', cell: (row) => formatClock(row.timeOut) },
+    { id: 'hours', header: 'Hours Worked', cell: (row) => row.hoursWorked ? Number(row.hoursWorked).toFixed(2) : '—' },
     { id: 'location', header: 'Coordinates', cell: (row) => row.location || '—' },
     { id: 'comments', header: 'Comments', cell: (row) => row.comments },
   ]
@@ -80,12 +112,16 @@ export function Attendance() {
             variant="success"
             className="rounded-full px-5"
             onClick={signIn}
-            disabled={fetchingLocation}
+            disabled={fetchingLocation || attendanceAction !== null || signedInToday}
           >
-            {fetchingLocation ? 'Getting location…' : 'Sign-in Today'}
+            {attendanceAction === 'in'
+              ? (fetchingLocation ? 'Getting location…' : 'Signing in…')
+              : signedInToday
+                ? `Signed in ${formatClock(todayRecord?.timeIn ?? '')}`
+                : 'Sign-in Today'}
           </Button>
-          <Button type="button" variant="action" className="rounded-full px-5" onClick={() => setConfirmSignOut(true)}>
-            Sign-out Today
+          <Button type="button" variant="action" className="rounded-full px-5" disabled={attendanceAction !== null || !signedInToday || signedOutToday} onClick={() => setConfirmSignOut(true)}>
+            {signedOutToday ? `Signed out ${formatClock(todayRecord?.timeOut ?? '')}` : 'Sign-out Today'}
           </Button>
         </div>
       }
@@ -119,8 +155,8 @@ export function Attendance() {
               <Button type="button" variant="outline" onClick={() => setConfirmSignOut(false)}>
                 Cancel
               </Button>
-              <Button type="button" variant="action" onClick={signOut}>
-                Sign out
+              <Button type="button" variant="action" disabled={attendanceAction === 'out'} onClick={() => void signOut()}>
+                {attendanceAction === 'out' ? (fetchingLocation ? 'Getting location…' : 'Signing out…') : 'Sign out'}
               </Button>
             </div>
           </div>

@@ -63,6 +63,8 @@ export interface Attachment {
   size: number
   progress: number
   uploadedAt: string
+  description?: string
+  contentBase64?: string
 }
 
 export interface ApprovalStep {
@@ -73,6 +75,7 @@ export interface ApprovalStep {
   status: RequestStatus | 'Submitted'
   timestamp: string
   note?: string
+  sequenceNo?: number
 }
 
 export interface AuditTrailEntry {
@@ -254,6 +257,7 @@ export type PortalModuleKey =
   | 'imprestSurrender'
   | 'staffClaim'
   | 'pettyCash'
+  | 'pettyCashReplenishment'
   | 'storeRequisition'
   | 'purchaseRequisition'
   | 'fuelRequest'

@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+import { readFileSync } from 'node:fs'
 import bcrypt from 'bcryptjs'
 import { getPrisma, disconnect } from '../src/client.js'
 
@@ -116,6 +117,17 @@ const payrollLines = [
 ]
 
 const documents = [
+  {
+    id: 'insurance-fixed-asset-report',
+    title: 'Insurance Fixed Asset Report',
+    category: 'Report',
+    updatedOn: '06 Nov 2025',
+    fileName: 'Insurance-Fixed-Asset-Report.pdf',
+    mimeType: 'application/pdf',
+    content: readFileSync(
+      new URL('./assets/Insurance-Fixed-Asset-Report.pdf', import.meta.url),
+    ).toString('base64'),
+  },
   {
     id: 'hr-policy-manual',
     title: 'HR Policy Manual',

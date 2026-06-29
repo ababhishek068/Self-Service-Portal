@@ -1,83 +1,92 @@
 import { formatISO } from 'date-fns'
-import { createStoreRequisition, listStoreRequisitions } from '@/api/endpoints/storeRequisition'
-import { RequestFormPage } from '@/components/shared/RequestFormPage'
-import { departments } from '@/data/departments'
-import { itemMaster } from '@/data/items'
-import { useEmployeeDefaults } from '@/hooks/useEmployeeDefaults'
-import { buildFaTagNumber } from '@/utils/validators'
-import { storeRequisitionSchema, type StoreRequisitionForm } from '@/schemas/requestSchemas'
+import { useSearchParams } from 'react-router-dom'
+import { MultiStepRequestPage } from '@/components/shared/MultiStepRequestPage'
+import { listModuleRequests } from '@/api/endpoints/requestEndpoint'
+import { storeLineTypeOptions } from '@/data/essOptions'
+import { storeHeaderSchema, storeLineSchema } from '@/schemas/requestSchemas'
+import { useLookupOptions } from '@/hooks/useLookupOptions'
 
 const today = formatISO(new Date(), { representation: 'date' })
-const departmentOptions = departments.map((department) => ({ label: department.name, value: department.code }))
-const itemOptions = itemMaster.map((item) => ({ label: `${item.code} - ${item.description}`, value: item.code }))
+const module = { module: 'storeRequisition', entity: 'selfServiceStoreRequisitions' } as const
 
 export function StoreRequisition() {
-  const { departmentCode } = useEmployeeDefaults()
+  const [searchParams] = useSearchParams()
+  const locations = useLookupOptions('locations')
+  const items = useLookupOptions('items')
+  const assets = useLookupOptions('assets')
 
   return (
-    <RequestFormPage
+    <MultiStepRequestPage
       title="Store Requisition"
-      description="Request inventory with item-code linking, department rights, budget check, duplicate controls, FA tag validation, and stock blocking."
-      schema={storeRequisitionSchema}
+      headerLabel="New Store Requisition"
+      description="Create the store requisition header, then add item or asset lines before requesting approval."
+      module={module}
       queryKey={['facility', 'store-requisition']}
-      listRequests={listStoreRequisitions}
-      createRequest={(values) => createStoreRequisition(values as StoreRequisitionForm)}
-      source="ERP facility and procurement 21st.xlsx"
-      defaultValues={{
-        requestDate: today,
-        departmentCode,
-        budgetAvailable: 120000,
-        justification: '',
-        lines: [
-          {
-            itemCode: 'ST032',
-            description: 'Photocopy paper',
-            quantity: 1,
-            uom: 'Pcs',
-            availableStock: 480,
-            isFixedAsset: false,
-            faTagNumber: '',
-          },
-        ],
-        attachments: [],
-      }}
-      fields={[
-        { name: 'requestDate', label: 'Request date', type: 'date' },
-        { name: 'departmentCode', label: 'Department', type: 'select', options: departmentOptions },
-        { name: 'budgetAvailable', label: 'Budget available', type: 'number', readOnly: true },
-        { name: 'justification', label: 'Justification', type: 'textarea' },
-        {
-          name: 'lines',
-          label: 'Store items',
-          type: 'lineItems',
-          defaultLine: {
-            itemCode: 'ST032',
-            description: 'Photocopy paper',
-            quantity: 1,
-            uom: 'Pcs',
-            availableStock: 480,
-            isFixedAsset: false,
-            faTagNumber: '',
-          },
-          fields: [
-            { name: 'itemCode', label: 'Item code', type: 'select', options: itemOptions },
-            { name: 'description', label: 'Description', type: 'text' },
-            { name: 'quantity', label: 'Qty', type: 'number' },
-            { name: 'uom', label: 'UoM', type: 'text' },
-            { name: 'availableStock', label: 'Available stock', type: 'number', readOnly: true },
-            { name: 'isFixedAsset', label: 'Fixed Asset item', type: 'checkbox' },
-            { name: 'faTagNumber', label: 'FA tag number', type: 'text', placeholder: buildFaTagNumber('BO', 'IT', 'FA112', 7) },
-          ],
-        },
-        { name: 'attachments', label: 'Attachments', type: 'files' },
+      listRequests={() => listModuleRequests(module)}
+      newButtonLabel="New Request"
+      initialMode={searchParams.get('new') === '1' ? 'create' : 'list'}
+      headerSchema={storeHeaderSchema}
+      headerDefaults={{ dateRequired: today, description: '' }}
+      buildHeaderPayload={(values) => ({
+        ...values,
+        requestDate: values.dateRequired,
+        requestDescription: values.description,
+        title: String(values.description || 'Store Requisition'),
+      })}
+      headerFields={[
+        { name: 'dateRequired', label: 'Date Required', type: 'date', valuePaths: ['RequiredDate', 'Required_Date', 'RequestDate'] },
+        { name: 'description', label: 'Request Description', type: 'textarea', valuePaths: ['RequestDescription', 'Request_Description'] },
       ]}
-      moduleConfig={{ module: 'storeRequisition', entity: 'selfServiceStoreRequisitions' }}
+      detailFields={[
+        { label: 'Requisition No.', paths: ['request.requestNo'] },
+        { label: 'Date Required', paths: ['payload.RequiredDate', 'payload.Required_Date', 'payload.RequestDate'], format: 'date' },
+        { label: 'Description', paths: ['payload.RequestDescription', 'payload.Request_Description'] },
+        { label: 'Department', paths: ['request.departmentName', 'request.departmentCode', 'payload.ShortcutDimension2Code'] },
+        { label: 'Status', paths: ['request.status'], format: 'status' },
+      ]}
+      line={{
+        label: 'Requisition Lines',
+        addLabel: 'New Line',
+        schema: storeLineSchema,
+        defaultValues: { type: '1', issuingStore: '', itemNo: '', description: '', quantity: 1 },
+        buildLinePayload: (values) => ({
+          ...values,
+          location: values.issuingStore,
+          item: values.itemNo,
+        }),
+        fields: [
+          { name: 'type', label: 'Type', type: 'select', options: storeLineTypeOptions },
+          { name: 'issuingStore', label: 'Issuing Store', type: 'select', options: locations.options },
+          {
+            name: 'itemNo',
+            label: 'Item / Asset No.',
+            type: 'select',
+            optionsByField: {
+              field: 'type',
+              options: { '1': items.options, '2': assets.options },
+            },
+          },
+          { name: 'description', label: 'Description', type: 'text' },
+          { name: 'quantity', label: 'Quantity Requested', type: 'number' },
+        ],
+        columns: [
+          { key: 'type', header: 'Type' },
+          { key: 'issuingStore', header: 'Issuing Store' },
+          { key: 'itemNo', header: 'No.' },
+          { key: 'description', header: 'Description' },
+          { key: 'quantity', header: 'Quantity Requested' },
+          { key: 'quantityIssued', header: 'Quantity Issued' },
+          { key: 'quantityToReceive', header: 'Quantity To Receive' },
+          { key: 'quantityReceived', header: 'Quantity Received' },
+          { key: 'reason', header: 'Reason' },
+        ],
+        emptyText: '*** No Store Lines Found ***',
+        canEdit: false,
+      }}
       businessRules={[
-        'Item description and UoM resolve from item code.',
-        'Department-scoped rights prevent requesting for unauthorized units.',
-        'Budget check is required before approval.',
-        'Duplicate items within 24 hours are blocked.',
-        'Insufficient stock blocks posting.',
+        'Create the header first, then add item or asset lines.',
+        'Each line specifies type, issuing store, item number and quantity.',
+        'Attach supporting documents, then request approval.',
       ]}
     />
   )

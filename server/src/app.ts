@@ -19,7 +19,9 @@ export function createApp() {
       credentials: true,
     }),
   )
-  app.use(express.json())
+  // A 10 MB ESS attachment becomes roughly 13.4 MB after base64 encoding.
+  // Keep enough room for form fields while retaining an explicit request cap.
+  app.use(express.json({ limit: '32mb' }))
 
   app.get('/api/health', (_req, res) => {
     res.json({ status: 'ok', authProvider: env.AUTH_PROVIDER, time: new Date().toISOString() })

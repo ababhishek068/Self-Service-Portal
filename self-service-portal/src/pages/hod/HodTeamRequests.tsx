@@ -9,8 +9,9 @@ import { Input } from '@/components/ui/input'
 
 const columns: DataTableColumn<HodTeamRequestRow>[] = [
   { id: 'employee', header: 'Employee', cell: (row) => row.employee },
-  { id: 'type', header: 'Request Type', cell: (row) => row.requestType },
-  { id: 'date', header: 'Date', cell: (row) => row.date },
+  { id: 'employeeNo', header: 'Employee No.', cell: (row) => row.employeeNo },
+  { id: 'type', header: 'Job Title', cell: (row) => row.requestType },
+  { id: 'date', header: 'Employment Date', cell: (row) => row.date },
   { id: 'status', header: 'Status', cell: (row) => <StatusBadge status={row.status} /> },
 ]
 
@@ -30,14 +31,14 @@ export function HodTeamRequests() {
   }, [query.data, search])
 
   return (
-    <PageWrapper title="Team Requests" description="Department staff requests — search by employee, type, date, or status.">
+    <PageWrapper title="Department Staff" description="Active employees in your department.">
       <div className="mb-4 max-w-md">
         <div className="relative">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
           <Input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Search team requests..."
+            placeholder="Search department staff..."
             className="pl-9"
           />
         </div>
@@ -46,7 +47,7 @@ export function HodTeamRequests() {
         rows={filteredRows}
         columns={columns}
         getRowId={(row) => row.id}
-        emptyTitle={query.isLoading ? 'Loading team requests...' : 'No team requests found'}
+        emptyTitle={query.isLoading ? 'Loading department staff...' : 'No department staff found'}
       />
     </PageWrapper>
   )

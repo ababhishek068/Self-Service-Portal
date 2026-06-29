@@ -34,7 +34,7 @@ export async function signInAttendance(location: string): Promise<AttendanceRow>
   })
 }
 
-export async function signOutAttendance(): Promise<AttendanceRow> {
+export async function signOutAttendance(location: string): Promise<AttendanceRow> {
   requireAuthApiUrl()
-  return authPost<AttendanceRow>('/api/attendance/sign-out', {})
+  return authPost<AttendanceRow>('/api/attendance/sign-out', { location })
 }

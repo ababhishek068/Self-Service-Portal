@@ -1,5 +1,6 @@
-import { authGet, authPost } from '@/api/client/authClient'
+import { authGet, authHttp, authPost } from '@/api/client/authClient'
 import { requireAuthApiUrl } from '@/api/requireBackend'
+import type { PortalRequest } from '@/types/erp.types'
 
 export interface LeaveType {
   code: string
@@ -91,12 +92,48 @@ export interface SubmitLeaveInput {
   reason: string
 }
 
-export async function submitLeaveRequest(input: SubmitLeaveInput): Promise<{ ok: boolean; message: string }> {
+export interface SubmitLeaveResult {
+  ok: boolean
+  message: string
+  returnValue?: string
+  request?: PortalRequest
+}
+
+export async function submitLeaveRequest(input: SubmitLeaveInput): Promise<SubmitLeaveResult> {
   requireAuthApiUrl()
-  return authPost<{ ok: boolean; message: string }>('/api/leave', input)
+  return authPost<SubmitLeaveResult>('/api/leave', input)
 }
 
 export async function cancelLeaveRequest(no: string): Promise<{ ok: boolean; message: string }> {
   requireAuthApiUrl()
   return authPost<{ ok: boolean; message: string }>('/api/leave/cancel', { no })
+}
+
+export async function requestLeaveApproval(no: string): Promise<{ ok: boolean; message: string }> {
+  requireAuthApiUrl()
+  return authPost<{ ok: boolean; message: string }>('/api/leave/approval', { no })
+}
+
+export async function downloadLeaveStatement(
+  leaveType: string,
+  onProgress?: (progress: number) => void,
+): Promise<void> {
+  requireAuthApiUrl()
+  const response = await authHttp.get<Blob>('/api/leave/statement', {
+    params: { leaveType },
+    responseType: 'blob',
+    onDownloadProgress: (event) => {
+      if (event.total) onProgress?.(Math.min(95, Math.round((event.loaded / event.total) * 95)))
+      else if (event.loaded > 0) onProgress?.(72)
+    },
+  })
+  onProgress?.(100)
+  const url = URL.createObjectURL(response.data)
+  const link = document.createElement('a')
+  link.href = url
+  link.download = `leave-statement-${leaveType}.pdf`
+  document.body.appendChild(link)
+  link.click()
+  link.remove()
+  URL.revokeObjectURL(url)
 }

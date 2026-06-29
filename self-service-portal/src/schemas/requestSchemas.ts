@@ -24,6 +24,8 @@ const attachmentSchema = z.object({
   size: z.number(),
   progress: z.number(),
   uploadedAt: z.string(),
+  description: z.string().optional(),
+  contentBase64: z.string().optional(),
 })
 
 export const imprestLineSchema = z.object({
@@ -110,6 +112,130 @@ export const staffClaimSchema = z
     }
   })
 
+// --- ESS multi-step (header + line) schemas ---------------------------------
+
+export const staffClaimHeaderSchema = z.object({
+  claimDate: workingDateField,
+  purpose: z.string().min(3, 'Claim purpose is required'),
+})
+
+export const staffClaimLineSchema = z.object({
+  claimType: z.string().min(1, 'Claim type is required'),
+  accountNo: z.string().min(1, 'Account number is required'),
+  accountName: optionalText,
+  hospitalCategory: optionalText,
+  medicalAmount: z.coerce.number().min(0).default(0),
+  amount: moneyField,
+  claimReceiptNo: optionalText,
+  expenditureDate: dateField,
+  expenditureDescription: z.string().min(3, 'Expenditure description is required'),
+})
+
+export const imprestHeaderSchema = z
+  .object({
+    dateRequired: workingDateField,
+    purpose: z.string().min(3, 'Imprest purpose is required'),
+    travelDate: dateField,
+    returnDate: dateField,
+  })
+  .superRefine((data, ctx) => {
+    if (isBefore(parseISO(data.returnDate), parseISO(data.travelDate))) {
+      ctx.addIssue({ code: 'custom', path: ['returnDate'], message: 'Return date must be on or after the start date' })
+    }
+  })
+
+export const imprestLineHeaderSchema = z.object({
+  advanceType: z.string().min(1, 'Imprest type is required'),
+  destination: z.string().min(1, 'Travel destination is required'),
+  dutyArea: z.string().min(1, 'Duty area is required'),
+  noOfDays: z.coerce.number().positive('No. of days is required'),
+  amount: moneyField,
+})
+
+export const pettyCashHeaderSchema = z.object({
+  dateNeeded: workingDateField,
+  description: z.string().min(3, 'Petty cash description & reason is required'),
+})
+
+export const pettyCashLineSchema = z.object({
+  type: z.string().min(1, 'Type is required'),
+  name: optionalText,
+  amount: moneyField,
+})
+
+export const imprestSurrenderHeaderSchema = z.object({
+  imprest: z.string().min(1, 'Select the imprest to surrender'),
+})
+
+export const storeHeaderSchema = z.object({
+  dateRequired: workingDateField,
+  description: z.string().min(3, 'Request description is required'),
+})
+
+export const storeLineSchema = z.object({
+  type: z.string().min(1, 'Type is required'),
+  issuingStore: z.string().min(1, 'Issuing store is required'),
+  itemNo: z.string().min(1, 'Item number is required'),
+  description: optionalText,
+  quantity: quantityField,
+})
+
+export const transportHeaderSchema = z.object({
+  requestType: z.string().min(1, 'Request type is required'),
+  destination: z.string().min(1, 'Destination is required'),
+  dateOfTrip: dateField,
+  responsibilityCenter: z.string().min(1, 'Responsibility center is required'),
+  noOfDays: z.coerce.number().positive('No. of days is required'),
+  noOfPassengers: z.coerce.number().positive('No. of passengers is required'),
+  purpose: z.string().min(3, 'Purpose of the trip is required'),
+})
+
+export const transportPassengerLineSchema = z.object({
+  passengerType: z.string().min(1, 'Passenger type is required'),
+  employeeNo: optionalText,
+  externalPassName: optionalText,
+  externalPassOrganization: optionalText,
+}).superRefine((data, ctx) => {
+  if (data.passengerType === 'Staff' && !data.employeeNo) {
+    ctx.addIssue({ code: 'custom', path: ['employeeNo'], message: 'Employee is required' })
+  }
+  if (data.passengerType === 'External' && !data.externalPassName) {
+    ctx.addIssue({ code: 'custom', path: ['externalPassName'], message: 'Passenger name is required' })
+  }
+})
+
+export const purchaseHeaderSchema = z.object({
+  dateNeeded: workingDateField,
+  description: z.string().min(3, 'Description is required'),
+})
+
+export const purchaseLineSchema = z.object({
+  itemNo: z.string().min(1, 'Item number is required'),
+  location: optionalText,
+  reasonForRequest: z.string().min(3, 'Reason for request is required'),
+  quantity: quantityField,
+  type: z.string().min(1, 'Type is required'),
+})
+
+export const transferOrderHeaderSchema = z
+  .object({
+    from: z.string().min(1, 'From location is required'),
+    to: z.string().min(1, 'To location is required'),
+    inTransit: z.string().min(1, 'In-transit code is required'),
+    truckNo: z.string().min(1, 'Truck number is required'),
+    postingDate: dateField,
+    driverName: z.string().min(1, 'Driver name is required'),
+  })
+  .refine((data) => data.from !== data.to, {
+    path: ['to'],
+    message: 'Destination must be different from the source location',
+  })
+
+export const transferOrderLineSchema = z.object({
+  itemNo: z.string().min(1, 'Item number is required'),
+  quantity: quantityField,
+})
+
 export const pettyCashSchema = z.object({
   activity: z.enum(['Request', 'Petty Cash Replenishment', 'Petty Cash Settlement']),
   departmentCode: z.string().min(1, 'Department is required'),
@@ -118,6 +244,19 @@ export const pettyCashSchema = z.object({
   limitAmount: moneyField,
   costCenter: z.string().min(2, 'Cost center is required'),
   purpose: z.string().min(8, 'Purpose is required'),
+  attachments: z.array(attachmentSchema).default([]),
+})
+
+export const pettyCashReplenishmentSchema = z.object({
+  dateCreated: workingDateField,
+  sector: z.string().min(1, 'Sector is required'),
+  division: z.string().min(1, 'Division is required'),
+  department: z.string().min(1, 'Department is required'),
+  payingAccount: z.string().min(2, 'Paying account is required'),
+  sourceAmount: moneyField,
+  receivingAccount: z.string().min(2, 'Receiving account is required'),
+  receivingAmount: moneyField,
+  remarks: z.string().min(5, 'Remarks are required'),
   attachments: z.array(attachmentSchema).default([]),
 })
 
@@ -187,6 +326,35 @@ export const fuelRequestSchema = z.object({
   purpose: z.string().min(8, 'Purpose is required'),
 })
 
+/** ESS fuel requisition card — `FuelMaintenanceController`. */
+export const fuelHeaderSchema = z
+  .object({
+    requestType: z.string().min(1, 'Request type is required'),
+    cardNo: optionalText,
+    vehicleNo: optionalText,
+    fuelDealer: optionalText,
+    quantity: z.coerce.number().min(0).default(0),
+    price: z.coerce.number().min(0).default(0),
+    purpose: z.string().min(3, 'Purpose is required'),
+  })
+  .superRefine((data, ctx) => {
+    const isCard = data.requestType === '3' || data.requestType.toLowerCase().includes('card')
+    if (isCard && !data.cardNo) {
+      ctx.addIssue({ code: 'custom', path: ['cardNo'], message: 'Fuel card number is required' })
+    }
+    if (!isCard && !data.vehicleNo) {
+      ctx.addIssue({ code: 'custom', path: ['vehicleNo'], message: 'Vehicle registration number is required' })
+    }
+    if (!isCard && !data.fuelDealer) {
+      ctx.addIssue({ code: 'custom', path: ['fuelDealer'], message: 'Fuel dealer is required' })
+    }
+  })
+
+export const trainingRequestSchema = z.object({
+  trainingNeed: z.string().min(1, 'Training course is required'),
+  comments: z.string().min(3, 'Comments are required'),
+})
+
 export const transportRequestSchema = z
   .object({
     transportType: z.enum(['City', 'Field']),
@@ -209,10 +377,8 @@ export const transportRequestSchema = z
   })
 
 export const salaryAdvanceSchema = z.object({
-  requestDate: workingDateField,
-  amount: moneyField,
-  reason: z.string().min(8, 'Reason is required'),
-  repaymentMonths: z.coerce.number().min(1, 'Minimum 1 month').max(12, 'Maximum 12 months'),
+  purpose: z.string().min(8, 'Purpose is required'),
+  percentageSalary: z.coerce.number().positive('Percentage is required').max(100, 'Maximum is 100%'),
 })
 
 export const trainingNeedsSchema = z.object({
@@ -229,29 +395,54 @@ export const documentRequisitionSchema = z.object({
   purpose: z.string().min(10, 'Purpose must be at least 10 characters'),
 })
 
-export const maintenanceRequestSchema = z.object({
-  requestDate: dateField,
-  faTagNumber: z.string().regex(faTagPattern, 'Use a valid FA tag number (FA/dept/category/item/seq/year)'),
-  priority: z.enum(['Low', 'Medium', 'High', 'Critical']),
-  location: z.string().min(2, 'Location is required'),
-  issueDescription: z.string().min(10, 'Issue description is required'),
-  attachments: z.array(attachmentSchema).default([]),
-})
+export const maintenanceRequestSchema = z
+  .object({
+    requestDate: dateField,
+    requestType: z.enum(['1', '2']),
+    faTagNumber: optionalText,
+    vehicleNo: optionalText,
+    item: z.string().min(2, 'Item / service is required'),
+    quantity: quantityField,
+    priority: z.enum(['Low', 'Medium', 'High', 'Critical']),
+    location: z.string().min(2, 'Location is required'),
+    odometer: z.coerce.number().min(0).default(0),
+    lastServiceOdometer: z.coerce.number().min(0).default(0),
+    issueDescription: z.string().min(10, 'Issue description is required'),
+    attachments: z.array(attachmentSchema).default([]),
+  })
+  .superRefine((data, ctx) => {
+    if (data.requestType === '1' && !data.faTagNumber) {
+      ctx.addIssue({ code: 'custom', path: ['faTagNumber'], message: 'FA tag number is required' })
+    }
+    if (data.requestType === '2') {
+      if (!data.vehicleNo) {
+        ctx.addIssue({ code: 'custom', path: ['vehicleNo'], message: 'Vehicle number is required' })
+      }
+      if (data.odometer <= 0) {
+        ctx.addIssue({ code: 'custom', path: ['odometer'], message: 'Current odometer is required' })
+      }
+      if (data.lastServiceOdometer > 0 && data.odometer - data.lastServiceOdometer < 5000) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['odometer'],
+          message: `Vehicle service is due at ${data.lastServiceOdometer + 5000} km`,
+        })
+      }
+    }
+  })
 
 export const transferOrderSchema = z
   .object({
-    transferType: z.enum(['Temporary', 'Permanent']),
-    assetTagNumber: z.string().min(3, 'Asset or vehicle tag is required'),
-    fromEmployee: z.string().min(2, 'Current custodian is required'),
-    toEmployee: z.string().min(2, 'Receiving custodian is required'),
-    handoverDate: dateField,
-    returnDate: optionalText,
-    notes: z.string().min(5, 'Notes are required'),
-  })
-  .superRefine((data, ctx) => {
-    if (data.transferType === 'Temporary' && !data.returnDate) {
-      ctx.addIssue({ code: 'custom', path: ['returnDate'], message: 'Return date is required for temporary handover' })
-    }
+    from: z.string().min(2, 'From location is required'),
+    to: z.string().min(2, 'To location is required'),
+    inTransit: z.string().min(2, 'In-transit location is required'),
+    truckNo: optionalText,
+    driverName: optionalText,
+    postingDate: dateField,
+    lines: z.array(z.object({
+      itemNo: z.string().min(1, 'Item is required'),
+      quantity: quantityField,
+    })).min(1, 'Add at least one transfer line'),
   })
 
 export const gatePassSchema = z
@@ -331,6 +522,7 @@ export const requestSchemas = {
   imprestSurrender: imprestSurrenderSchema,
   staffClaim: staffClaimSchema,
   pettyCash: pettyCashSchema,
+  pettyCashReplenishment: pettyCashReplenishmentSchema,
   storeRequisition: storeRequisitionSchema,
   purchaseRequisition: purchaseRequisitionSchema,
   fuelRequest: fuelRequestSchema,
@@ -351,6 +543,7 @@ export type ImprestRequestForm = z.infer<typeof imprestRequestSchema>
 export type ImprestSurrenderForm = z.infer<typeof imprestSurrenderSchema>
 export type StaffClaimForm = z.infer<typeof staffClaimSchema>
 export type PettyCashForm = z.infer<typeof pettyCashSchema>
+export type PettyCashReplenishmentForm = z.infer<typeof pettyCashReplenishmentSchema>
 export type StoreRequisitionForm = z.infer<typeof storeRequisitionSchema>
 export type PurchaseRequisitionForm = z.infer<typeof purchaseRequisitionSchema>
 export type FuelRequestForm = z.infer<typeof fuelRequestSchema>

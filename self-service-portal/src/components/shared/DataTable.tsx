@@ -18,6 +18,8 @@ interface DataTableProps<T> {
   emptyAction?: ReactNode
   selectedRowId?: string
   compact?: boolean
+  /** When provided, rows become clickable with hover affordance. */
+  onRowClick?: (row: T) => void
 }
 
 export function DataTable<T>({
@@ -28,6 +30,7 @@ export function DataTable<T>({
   emptyAction,
   selectedRowId,
   compact = false,
+  onRowClick,
 }: DataTableProps<T>) {
   const [page, setPage] = useState(1)
   const pageSize = compact ? 20 : 10
@@ -44,14 +47,18 @@ export function DataTable<T>({
             ))}
           </TableRow>
         </TableHeader>
-        <TableBody>
+        <TableBody key={page} className="portal-row-stagger">
           {pagedRows.length > 0 ? (
             pagedRows.map((row) => {
               const rowId = getRowId(row)
               return (
                 <TableRow
                   key={rowId}
-                  className={cn(selectedRowId === rowId && 'bg-[var(--portal-green-light)]! text-white hover:bg-[var(--portal-green-light)]!')}
+                  onClick={onRowClick ? () => onRowClick(row) : undefined}
+                  className={cn(
+                    onRowClick && 'portal-row-click',
+                    selectedRowId === rowId && 'bg-[var(--portal-green-light)]! text-white hover:bg-[var(--portal-green-light)]!',
+                  )}
                 >
                   {columns.map((column) => (
                     <TableCell key={column.id} className={selectedRowId === rowId ? 'text-white' : undefined}>

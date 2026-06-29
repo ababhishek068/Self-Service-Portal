@@ -111,6 +111,18 @@ export interface CreatePortalRequestInput {
   attachments?: unknown[]
 }
 
+export interface DbAttachment {
+  id: string
+  fileName: string
+  fileType: string
+  mimeType: string
+  size: number
+  description: string
+  uploadedAt: string
+  progress: number
+  contentBase64?: string
+}
+
 export function listRequests(input?: { module?: string; employeeNo?: string }): Promise<DbPortalRequest[]>
 export function listApprovalRequests(input?: { employeeNo?: string; type?: string }): Promise<DbPortalRequest[]>
 export function getRequestById(id: string): Promise<DbPortalRequest | null>
@@ -120,8 +132,62 @@ export function updateRequestStatus(
   id: string,
   input: { status: string; actorEmployeeNo: string; actorName: string; comment?: string; role?: string },
 ): Promise<DbPortalRequest | null>
+export function updateRequestHeader(
+  id: string,
+  patch: Record<string, unknown>,
+): Promise<DbPortalRequest | null>
+export function addRequestLine(
+  id: string,
+  line: Record<string, unknown>,
+): Promise<DbPortalRequest | null>
+export function updateRequestLine(
+  id: string,
+  lineId: string,
+  patch: Record<string, unknown>,
+): Promise<DbPortalRequest | null>
+export function setRequestLines(
+  id: string,
+  lines: Record<string, unknown>[],
+): Promise<DbPortalRequest | null>
+export function deleteRequestLine(id: string, lineId: string): Promise<DbPortalRequest | null>
+export function addRequestAttachment(
+  id: string,
+  attachment: Record<string, unknown>,
+): Promise<DbPortalRequest | null>
+export function deleteRequestAttachment(
+  id: string,
+  attachmentId: string,
+): Promise<DbPortalRequest | null>
 export function deleteRequest(id: string): Promise<void>
 export function dashboardSummary(employeeNo: string): Promise<Record<string, unknown>>
+export function getRequestAttachment(id: string): Promise<
+  | (DbAttachment & {
+      scope: string
+      ownerKey: string
+      documentNo: string
+      tableId: number
+      contentBase64: string
+      uploadedBy: string
+      request?: {
+        id: string
+        requestNo: string
+        makerEmployeeNo: string
+        approverEmployeeNo?: string | null
+      } | null
+    })
+  | null
+>
+export function listProfileAttachments(employeeNo: string): Promise<DbAttachment[]>
+export function createProfileAttachment(input: {
+  employeeNo: string
+  fileName: string
+  mimeType?: string
+  size?: number
+  description?: string
+  contentBase64: string
+  uploadedBy?: string
+  tableId?: number
+}): Promise<DbAttachment>
 
 export interface DbAttendanceRecord {
   id: string

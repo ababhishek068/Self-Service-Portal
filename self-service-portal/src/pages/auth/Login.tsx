@@ -1,6 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react'
 import { Loader2 } from 'lucide-react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useLocation, useNavigate } from 'react-router-dom'
 import { SignInModeDialog } from '@/components/auth/SignInModeDialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,6 +13,7 @@ const SIGN_IN_MODE_KEY = 'ssp.signInMode'
 
 export function Login() {
   const navigate = useNavigate()
+  const location = useLocation()
   const { isAuthenticated, bootstrapped, login, submitting, error } = useAuth()
   const [staffNo, setStaffNo] = useState('')
   const [password, setPassword] = useState('')
@@ -77,6 +78,8 @@ export function Login() {
   }
 
   const displayError = localError ?? error
+  const passwordResetMessage =
+    (location.state as { passwordResetMessage?: string } | null)?.passwordResetMessage
   const selectedLabel =
     signInModeOptions.find((option) => option.id === selectedMode)?.label ?? signInModeOptions[0].label
 
@@ -115,6 +118,11 @@ export function Login() {
           </div>
 
           <form className="space-y-4 p-4 sm:p-6" onSubmit={handleFormSubmit}>
+            {passwordResetMessage ? (
+              <div className="rounded border-l-4 border-emerald-500 bg-emerald-50 px-3 py-2 text-sm text-emerald-700" role="status">
+                {passwordResetMessage}
+              </div>
+            ) : null}
             {displayError ? (
               <div className="rounded border-l-4 border-red-500 bg-red-50 px-3 py-2 text-sm text-red-700" role="alert">
                 {displayError}
@@ -168,9 +176,8 @@ export function Login() {
             ) : null}
 
             <p className="text-center text-sm text-slate-600">
-              Don&apos;t have an account?{' '}
-              <Link to="/register" className="font-semibold text-[var(--portal-navy)] hover:underline">
-                Sign up
+              <Link to="/forgot-password" className="font-semibold text-[var(--portal-navy)] hover:underline">
+                Forgot or change your password?
               </Link>
             </p>
           </form>

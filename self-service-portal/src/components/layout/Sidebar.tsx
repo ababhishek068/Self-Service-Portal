@@ -19,16 +19,17 @@ function NavLeaf({ item, depth = 0 }: { item: NavItem; depth?: number }) {
   return (
     <NavLink
       to={item.path}
-      end={item.path === '/'}
+      end
       onClick={item.underConstruction ? handleUnderConstructionClick : undefined}
       className={({ isActive }) =>
         cn(
           'group relative flex items-center gap-2.5 py-2.5 text-sm text-white/95 transition-all duration-200',
-          depth > 0 ? 'pl-11 pr-4' : 'px-4',
+          depth >= 2 ? 'pl-16 pr-4' : depth === 1 ? 'pl-11 pr-4' : 'px-4',
           isActive && !item.underConstruction
             ? 'portal-nav-active-bar animate-nav-active bg-gradient-to-r from-[var(--portal-orange)] to-[#f97316] font-medium text-white shadow-[inset_3px_0_0_#fff,0_0_24px_var(--portal-glow-orange)]'
             : 'hover:bg-white/10 hover:pl-[calc(1rem+2px)] hover:shadow-[inset_3px_0_0_rgba(255,255,255,0.35)]',
-          depth > 0 && 'hover:pl-[calc(2.75rem+2px)]',
+          depth === 1 && 'hover:pl-[calc(2.75rem+2px)]',
+          depth >= 2 && 'hover:pl-[calc(4rem+2px)]',
           item.underConstruction && 'opacity-75',
         )
       }
@@ -55,7 +56,7 @@ function NavLeaf({ item, depth = 0 }: { item: NavItem; depth?: number }) {
   )
 }
 
-function NavGroup({ item }: { item: NavItem }) {
+function NavGroup({ item, depth = 0 }: { item: NavItem; depth?: number }) {
   const location = useLocation()
   const active = isGroupActive(item, location.pathname)
   const [open, setOpen] = useState(active)
@@ -71,7 +72,8 @@ function NavGroup({ item }: { item: NavItem }) {
         type="button"
         onClick={() => setOpen((value: boolean) => !value)}
         className={cn(
-          'flex w-full items-center gap-2.5 px-4 py-2.5 text-left text-sm text-white transition-all duration-200 hover:bg-white/10',
+          'flex w-full items-center gap-2.5 py-2.5 text-left text-sm text-white transition-all duration-200 hover:bg-white/10',
+          depth > 0 ? 'pl-9 pr-4' : 'px-4',
           active && 'bg-white/5',
         )}
       >
@@ -83,7 +85,9 @@ function NavGroup({ item }: { item: NavItem }) {
       <div className="nav-submenu-grid bg-[var(--portal-navy-panel)]" data-open={open ? 'true' : 'false'}>
         <div className="nav-submenu-inner">
           {item.children?.map((child) =>
-            child.children ? <NavGroup key={child.label} item={child} /> : <NavLeaf key={child.label} item={child} depth={1} />,
+            child.children
+              ? <NavGroup key={child.label} item={child} depth={depth + 1} />
+              : <NavLeaf key={child.label} item={child} depth={depth + 1} />,
           )}
         </div>
       </div>
@@ -134,4 +138,3 @@ export function Sidebar() {
     </aside>
   )
 }
-

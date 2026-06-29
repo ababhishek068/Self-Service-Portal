@@ -1,32 +1,57 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { getPayslip } from '@/api/endpoints/payroll'
+import { Download } from 'lucide-react'
+import { downloadPayslipPdf, listPayrollPeriods } from '@/api/endpoints/payroll'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { PortalFormCard } from '@/components/shared/PortalFormCard'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
 import { Select } from '@/components/ui/select'
-import { useAuth } from '@/hooks/useAuth'
-import { payrollMonths, payrollYears } from '@/data/payroll'
-import { formatCurrency } from '@/utils/formatters'
+
+const monthNames = [
+  'January', 'February', 'March', 'April', 'May', 'June',
+  'July', 'August', 'September', 'October', 'November', 'December',
+]
 
 export function Payslip() {
-  const { employee } = useAuth()
-  const [year, setYear] = useState('2026')
-  const [month, setMonth] = useState('March')
-  const [generated, setGenerated] = useState(false)
-  const payslipQuery = useQuery({
-    queryKey: ['payroll', 'payslip', year, month],
-    queryFn: () => getPayslip(year, month),
-    enabled: generated,
-  })
+  const [year, setYear] = useState('')
+  const [month, setMonth] = useState('')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
+  const periodsQuery = useQuery({ queryKey: ['payroll', 'periods'], queryFn: listPayrollPeriods })
+  const periods = periodsQuery.data ?? []
+  const years = useMemo(
+    () => [...new Set(periods.map((period) => String(period.year)))],
+    [periods],
+  )
+  const months = useMemo(
+    () =>
+      periods
+        .filter((period) => !year || String(period.year) === year)
+        .map((period) => {
+          const numeric = Number(period.month)
+          return {
+            value: period.month,
+            label: Number.isInteger(numeric) && numeric >= 1 && numeric <= 12
+              ? monthNames[numeric - 1]!
+              : period.month,
+          }
+        })
+        .filter((period, index, rows) => rows.findIndex((row) => row.value === period.value) === index),
+    [periods, year],
+  )
 
-  const payslip = payslipQuery.data
-  const earnings = payslip?.lines.filter((line) => line.type === 'earning') ?? []
-  const deductions = payslip?.lines.filter((line) => line.type === 'deduction') ?? []
-  const gross = payslip?.grossPay ?? 0
-  const totalDeductions = payslip?.totalDeductions ?? 0
-  const net = payslip?.netPay ?? 0
+  const generate = async () => {
+    setLoading(true)
+    setError('')
+    try {
+      await downloadPayslipPdf(year, month)
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'Payslip generation failed.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <PageWrapper title="Payslip" showPageHeading={false}>
@@ -39,7 +64,8 @@ export function Payslip() {
                 id="year"
                 value={year}
                 onChange={(event) => setYear(event.target.value)}
-                options={payrollYears.map((y) => ({ label: y, value: y }))}
+                placeholder="Select year"
+                options={years.map((value) => ({ label: value, value }))}
               />
             </div>
             <div className="space-y-1.5">
@@ -48,7 +74,8 @@ export function Payslip() {
                 id="month"
                 value={month}
                 onChange={(event) => setMonth(event.target.value)}
-                options={payrollMonths.map((m) => ({ label: m, value: m }))}
+                placeholder="Select month"
+                options={months}
               />
             </div>
           </div>
@@ -56,69 +83,16 @@ export function Payslip() {
             <Button
               type="button"
               className="min-w-[120px] rounded-full"
-              onClick={() => setGenerated(true)}
-              disabled={payslipQuery.isFetching}
+              onClick={() => void generate()}
+              disabled={loading || !year || !month}
             >
-              {payslipQuery.isFetching ? 'Generating...' : 'Generate'}
+              <Download className="h-4 w-4" />
+              {loading ? 'Generating...' : 'Generate PDF'}
             </Button>
           </div>
+          {error ? <p className="text-center text-sm text-red-600">{error}</p> : null}
         </div>
       </PortalFormCard>
-
-      {generated && payslipQuery.isError ? (
-        <div className="portal-panel mt-6 p-4 text-sm text-red-700">
-          Payslip was not found for {month} {year}.
-        </div>
-      ) : null}
-
-      {generated && payslipQuery.isLoading ? (
-        <div className="portal-panel mt-6 p-4 text-sm text-slate-600">Loading payslip...</div>
-      ) : null}
-
-      {generated ? (
-        payslip ? <div className="portal-panel mt-6 space-y-4 p-4 sm:p-6">
-          <div className="border-b border-slate-200 pb-3">
-            <p className="text-sm text-slate-600">
-              {payslip.employeeNo || employee?.employeeNo} — {payslip.employeeName || employee?.displayName}
-            </p>
-            <p className="text-lg font-bold text-[var(--portal-navy)]">
-              Payslip — {month} {year}
-            </p>
-          </div>
-          <div className="grid gap-6 sm:grid-cols-2">
-            <div>
-              <p className="mb-2 text-sm font-semibold text-slate-700">Earnings</p>
-              {earnings.map((line) => (
-                <div key={line.label} className="flex justify-between border-b border-slate-100 py-1.5 text-sm">
-                  <span>{line.label}</span>
-                  <span>{formatCurrency(line.amount)}</span>
-                </div>
-              ))}
-              <div className="flex justify-between py-2 text-sm font-semibold">
-                <span>Gross Pay</span>
-                <span>{formatCurrency(gross)}</span>
-              </div>
-            </div>
-            <div>
-              <p className="mb-2 text-sm font-semibold text-slate-700">Deductions</p>
-              {deductions.map((line) => (
-                <div key={line.label} className="flex justify-between border-b border-slate-100 py-1.5 text-sm">
-                  <span>{line.label}</span>
-                  <span className="text-red-600">{formatCurrency(line.amount)}</span>
-                </div>
-              ))}
-              <div className="flex justify-between py-2 text-sm font-semibold">
-                <span>Total Deductions</span>
-                <span className="text-red-600">-{formatCurrency(totalDeductions)}</span>
-              </div>
-            </div>
-          </div>
-          <div className="flex justify-between rounded-lg bg-[var(--portal-navy)] px-4 py-3 text-white">
-            <span className="font-semibold">Net Pay</span>
-            <span className="text-xl font-bold">{formatCurrency(net)}</span>
-          </div>
-        </div> : null
-      ) : null}
     </PageWrapper>
   )
 }

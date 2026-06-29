@@ -15,7 +15,7 @@ export const listRejectedDocuments = () => listApprovals('rejected')
 
 export const getApprovalDetail = async (id: string) => {
   requireAuthApiUrl()
-  return authGet<PortalRequest>(`/api/requests/${encodeURIComponent(id)}`)
+  return authGet<PortalRequest>(`/api/approvals/${encodeURIComponent(id)}`)
 }
 
 export const decideApproval = async (id: string, decision: 'Approved' | 'Rejected', comment: string) => {

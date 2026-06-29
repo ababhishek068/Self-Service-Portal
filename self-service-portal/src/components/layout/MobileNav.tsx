@@ -9,9 +9,22 @@ import { handleUnderConstructionClick, useNavigation } from '@/hooks/useNavigati
 import { cn } from '@/lib/utils'
 import { brand } from '@/config/brand'
 
-function MobileNavGroup({ item, onNavigate }: { item: NavItem; onNavigate: () => void }) {
+function mobileGroupActive(item: NavItem, pathname: string): boolean {
+  if (item.path) return pathname === item.path || pathname.startsWith(`${item.path}/`)
+  return item.children?.some((child) => mobileGroupActive(child, pathname)) ?? false
+}
+
+function MobileNavGroup({
+  item,
+  onNavigate,
+  depth = 0,
+}: {
+  item: NavItem
+  onNavigate: () => void
+  depth?: number
+}) {
   const location = useLocation()
-  const hasActive = item.children?.some((c) => c.path && location.pathname.startsWith(c.path)) ?? false
+  const hasActive = mobileGroupActive(item, location.pathname)
   const [open, setOpen] = useState(hasActive)
   const Icon = item.icon
 
@@ -26,7 +39,10 @@ function MobileNavGroup({ item, onNavigate }: { item: NavItem; onNavigate: () =>
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center gap-2.5 px-4 py-3 text-left text-[15px] font-medium text-white active:bg-white/10"
+        className={cn(
+          'flex w-full items-center gap-2.5 py-3 text-left text-[15px] font-medium text-white active:bg-white/10',
+          depth > 0 ? 'pl-9 pr-4' : 'px-4',
+        )}
       >
         <Icon className="h-4 w-4 shrink-0 opacity-90" />
         <span className="flex-1">{item.label}</span>
@@ -35,7 +51,9 @@ function MobileNavGroup({ item, onNavigate }: { item: NavItem; onNavigate: () =>
       <div className="nav-submenu-grid bg-[var(--portal-navy-panel)]" data-open={open ? 'true' : 'false'}>
         <div className="nav-submenu-inner pb-1">
           {item.children.map((child) =>
-            child.path ? (
+            child.children ? (
+              <MobileNavGroup key={child.label} item={child} onNavigate={onNavigate} depth={depth + 1} />
+            ) : child.path ? (
               <NavLink
                 key={child.path}
                 to={child.path}
@@ -48,7 +66,8 @@ function MobileNavGroup({ item, onNavigate }: { item: NavItem; onNavigate: () =>
                 }}
                 className={({ isActive }) =>
                   cn(
-                    'flex items-center gap-2 px-12 py-2.5 text-sm text-white/95 transition-colors duration-200',
+                    'flex items-center gap-2 py-2.5 pr-4 text-sm text-white/95 transition-colors duration-200',
+                    depth > 0 ? 'pl-16' : 'pl-12',
                     isActive && !child.underConstruction
                       ? 'bg-gradient-to-r from-[var(--portal-orange)] to-[#f97316] font-medium shadow-[0_0_16px_var(--portal-glow-orange)]'
                       : 'active:bg-white/10',

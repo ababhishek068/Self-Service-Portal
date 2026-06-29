@@ -1,4 +1,13 @@
-import { authGet, authPost, clearToken, getToken, setApiBaseUrl, setToken } from '@/api/client/authClient'
+import {
+  authGet,
+  authPost,
+  clearApiBaseUrl,
+  clearToken,
+  getApiBaseUrl,
+  getToken,
+  setApiBaseUrl,
+  setToken,
+} from '@/api/client/authClient'
 import { requireApplicationApiUrl, requireAuthApiUrl, requireBcApiUrl } from '@/api/requireBackend'
 import { deriveRoles } from '@/config/roles'
 import type { Employee } from '@/types/erp.types'
@@ -101,6 +110,36 @@ export async function registerRequest(input: RegisterInput): Promise<Employee> {
   const { token, user } = await authPost<{ token: string; user: AuthUser }>('/api/auth/register', input)
   setToken(token)
   return toEmployee(user)
+}
+
+async function withBcPasswordApi<T>(request: () => Promise<T>) {
+  const previousBaseUrl = getApiBaseUrl()
+  setApiBaseUrl(requireBcApiUrl())
+  try {
+    return await request()
+  } finally {
+    if (previousBaseUrl) setApiBaseUrl(previousBaseUrl)
+    else clearApiBaseUrl()
+  }
+}
+
+export async function requestPasswordReset(staffNo: string): Promise<string> {
+  return withBcPasswordApi(async () => {
+    const response = await authPost<{ message: string }>('/api/auth/forgot-password', { staffNo })
+    return response.message
+  })
+}
+
+export async function resetForgottenPassword(input: {
+  staffNo: string
+  resetToken: string
+  password: string
+  passwordConfirmation: string
+}): Promise<string> {
+  return withBcPasswordApi(async () => {
+    const response = await authPost<{ message: string }>('/api/auth/reset-password', input)
+    return response.message
+  })
 }
 
 export async function logoutRequest(): Promise<void> {

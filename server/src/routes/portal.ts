@@ -3,11 +3,14 @@ import {
   createRequest,
   dashboardSummary,
   deleteRequest,
+  createProfileAttachment,
   getEmployeeProfile,
   getPayrollSlip,
   getPolicyDocument,
   getRequestById,
+  getRequestAttachment,
   getRequestByNo,
+  listProfileAttachments,
   listApprovalRequests,
   listAttendance,
   listPayrollSlips,
@@ -18,6 +21,13 @@ import {
   signInAttendance,
   signOutAttendance,
   updateRequestStatus,
+  updateRequestHeader,
+  addRequestLine,
+  updateRequestLine,
+  setRequestLines,
+  deleteRequestLine,
+  addRequestAttachment,
+  deleteRequestAttachment,
 } from '@ssp/db'
 import { AppError } from '../errors.js'
 import { asyncHandler } from '../middleware/errorHandler.js'
@@ -31,8 +41,12 @@ import {
   storeUsageReportRoles,
   userHasAnyRole,
 } from '../utils/roles.js'
+import { createTextPdf } from '../utils/pdf.js'
 
 const router = Router()
+const MAX_ATTACHMENT_BYTES = 10_000_000
+const MAX_TOTAL_ATTACHMENT_BYTES = 20_000_000
+const ALLOWED_ATTACHMENT_EXTENSIONS = new Set(['pdf', 'doc', 'docx', 'jpeg', 'jpg', 'png'])
 
 const leaveTypes = [
   { code: 'ANNUAL', description: 'Annual Leave', days: 21, isHourly: false },
@@ -70,6 +84,63 @@ const itemMaster = [
   { itemCode: 'ST067', code: 'ST067', description: 'Toner cartridge', uom: 'PCS', availableStock: 24 },
   { itemCode: 'FA112', code: 'FA112', description: 'Laptop computer', uom: 'PCS', availableStock: 6 },
 ]
+
+const lookupCatalogs: Record<string, Array<{ value: string; label: string; meta?: Record<string, unknown> }>> = {
+  'imprest-types': [
+    { value: 'TRAVEL', label: 'TRAVEL - Travel' },
+    { value: 'PER DIEM', label: 'PER DIEM - Per diem' },
+    { value: 'ACCOMMODATION', label: 'ACCOMMODATION - Accommodation' },
+  ],
+  'travel-destinations': [
+    { value: 'LOCAL', label: 'LOCAL - Local travel' },
+    { value: 'FIELD', label: 'FIELD - Field destination' },
+  ],
+  'claim-types': [
+    { value: 'MEDICAL', label: 'MEDICAL - Medical Claim', meta: { accountNo: '61000' } },
+    { value: 'TRAVEL', label: 'TRAVEL - Travel Claim', meta: { accountNo: '62000' } },
+    { value: 'OTHER', label: 'OTHER - Other Claim', meta: { accountNo: '69999' } },
+  ],
+  'petty-cash-types': [
+    { value: 'TRANSPORT', label: 'TRANSPORT - Transport' },
+    { value: 'STATIONERY', label: 'STATIONERY - Stationery' },
+    { value: 'OTHER', label: 'OTHER - Other' },
+  ],
+  'gl-accounts': [
+    { value: '61000', label: '61000 - Medical expenses' },
+    { value: '62000', label: '62000 - Travel expenses' },
+    { value: '69999', label: '69999 - Other expenses' },
+  ],
+  locations: [
+    { value: 'MAIN', label: 'MAIN - Main Store' },
+    { value: 'BRANCH', label: 'BRANCH - Branch Store' },
+  ],
+  'regular-locations': [
+    { value: 'MAIN', label: 'MAIN - Main Store' },
+    { value: 'BRANCH', label: 'BRANCH - Branch Store' },
+  ],
+  'in-transit-locations': [{ value: 'TRANSIT', label: 'TRANSIT - In Transit' }],
+  items: itemMaster.map((row) => ({ value: row.itemCode, label: `${row.itemCode} - ${row.description}` })),
+  assets: [{ value: 'FA112', label: 'FA112 - Laptop computer' }],
+  services: [
+    { value: '61000', label: '61000 - Medical expenses' },
+    { value: '62000', label: '62000 - Travel expenses' },
+  ],
+  'shipping-agents': [{ value: 'INTERNAL', label: 'INTERNAL - Internal Fleet' }],
+  'responsibility-centers': [{ value: 'HQ', label: 'HQ - Head Office' }],
+  vehicles: [{ value: 'KAA-001A', label: 'KAA-001A - Pool Vehicle' }],
+  'fuel-cards': [{ value: 'FC-001', label: 'FC-001' }],
+  vendors: [{ value: 'V0001', label: 'V0001 - Fuel Vendor' }],
+  'training-courses': [{ value: 'COURSE-001', label: 'COURSE-001 - Staff Development' }],
+  'payroll-posting-groups': [{ value: 'GENERAL', label: 'GENERAL - General Staff' }],
+  'bank-accounts': [
+    { value: 'BANK-OPERATING', label: 'BANK-OPERATING - Operating Account' },
+    { value: 'BANK-PETTY', label: 'BANK-PETTY - Petty Cash Account' },
+  ],
+  sectors: [{ value: 'CORP', label: 'CORP - Corporate' }],
+  divisions: [{ value: 'HQ', label: 'HQ - Head Office' }],
+  departments: [{ value: 'ADMIN', label: 'ADMIN - Administration' }],
+  'posted-receipts': [{ value: 'RCPT-001', label: 'RCPT-001 - Cash receipt' }],
+}
 
 function currentEmployeeNo(req: AuthedRequest) {
   const employeeNo = req.user?.sub
@@ -185,6 +256,80 @@ function payloadText(payload: Record<string, unknown> | undefined, key: string, 
   return value === undefined || value === null ? fallback : String(value)
 }
 
+function safeFileName(value: unknown) {
+  return String(value ?? 'attachment')
+    .replace(/[^\w.\- ]+/g, '_')
+    .slice(0, 180)
+}
+
+function normalizeAttachments(value: unknown) {
+  if (!Array.isArray(value)) return []
+  let totalSize = 0
+  return value.map((raw) => {
+    const attachment = raw as Record<string, unknown>
+    const fileName = safeFileName(attachment.fileName)
+    const extension = fileName.split('.').pop()?.toLowerCase() ?? ''
+    if (!ALLOWED_ATTACHMENT_EXTENSIONS.has(extension)) {
+      throw new AppError(
+        `${fileName} is not an allowed attachment type`,
+        422,
+        'INVALID_ATTACHMENT_TYPE',
+      )
+    }
+    const contentBase64 = String(attachment.contentBase64 ?? '').replace(/^data:[^,]+,/, '')
+    if (!contentBase64) {
+      throw new AppError(`${fileName} has no file content`, 422, 'EMPTY_ATTACHMENT')
+    }
+    const size = Buffer.from(contentBase64, 'base64').byteLength
+    if (size <= 0 || size > MAX_ATTACHMENT_BYTES) {
+      throw new AppError(
+        `${fileName} exceeds the 10 MB attachment limit`,
+        422,
+        'ATTACHMENT_TOO_LARGE',
+      )
+    }
+    totalSize += size
+    if (totalSize > MAX_TOTAL_ATTACHMENT_BYTES) {
+      throw new AppError(
+        'Combined attachments exceed the 20 MB request limit',
+        422,
+        'ATTACHMENTS_TOO_LARGE',
+      )
+    }
+    return {
+      fileName,
+      fileType: String(
+        attachment.fileType ?? attachment.mimeType ?? 'application/octet-stream',
+      ),
+      size,
+      description: String(attachment.description ?? fileName).slice(0, 180),
+      contentBase64,
+    }
+  })
+}
+
+function attachmentPayloadMetadata(
+  body: Record<string, unknown>,
+  attachments: ReturnType<typeof normalizeAttachments>,
+) {
+  return {
+    ...body,
+    attachments: attachments.map(({ contentBase64: _content, ...metadata }) => metadata),
+  }
+}
+
+function attachmentCanBeRead(
+  attachment: NonNullable<Awaited<ReturnType<typeof getRequestAttachment>>>,
+  user: StoredUser,
+) {
+  if (attachment.scope === 'profile') return attachment.ownerKey === user.employeeNo
+  return (
+    attachment.request?.makerEmployeeNo === user.employeeNo ||
+    attachment.request?.approverEmployeeNo === user.employeeNo ||
+    canUserApprove(user)
+  )
+}
+
 async function userCanApproveWorkflow(user: StoredUser) {
   if (canUserApprove(user)) return true
   const directReports = await userStore.listDirectReports(user.employeeNo)
@@ -193,6 +338,25 @@ async function userCanApproveWorkflow(user: StoredUser) {
 
 router.use(requireAuth)
 
+router.get('/lookups/:catalog', asyncHandler(async (req: AuthedRequest, res) => {
+  if (req.params.catalog === 'employees') {
+    const users = await listUsers()
+    res.json({
+      rows: users
+        .filter((user) => user.status === 'Active')
+        .map((user) => ({
+          value: user.employeeNo,
+          label: `${user.employeeNo} - ${displayName(user)}`,
+          meta: { jobTitle: user.jobTitle ?? '' },
+        })),
+    })
+    return
+  }
+  const rows = lookupCatalogs[req.params.catalog]
+  if (!rows) throw new AppError(`Unsupported lookup catalog: ${req.params.catalog}`, 404)
+  res.json({ rows })
+}))
+
 router.get('/requests', asyncHandler(async (req: AuthedRequest, res) => {
   const module = typeof req.query.module === 'string' ? req.query.module : undefined
   const mine = req.query.mine !== 'false'
@@ -200,9 +364,20 @@ router.get('/requests', asyncHandler(async (req: AuthedRequest, res) => {
   res.json(rows)
 }))
 
-router.get('/requests/:id', asyncHandler(async (req, res) => {
-  const row = await getRequestById(req.params.id)
+router.get('/requests/:id', asyncHandler(async (req: AuthedRequest, res) => {
+  const requestNo = req.params.id.startsWith('leave-')
+    ? req.params.id.slice('leave-'.length)
+    : ''
+  const row =
+    (await getRequestById(req.params.id)) ??
+    (requestNo ? await getRequestByNo(requestNo) : null)
   if (!row) throw new AppError('Request was not found', 404, 'REQUEST_NOT_FOUND')
+  const user = await currentUser(req)
+  const canRead =
+    row.makerEmployeeNo === user.employeeNo ||
+    row.approverEmployeeNo === user.employeeNo ||
+    canUserApprove(user)
+  if (!canRead) throw new AppError('You cannot access this request', 403, 'REQUEST_FORBIDDEN')
   res.json(row)
 }))
 
@@ -215,8 +390,36 @@ router.post('/requests', asyncHandler(async (req: AuthedRequest, res) => {
 
   const submit = body.submit !== false
   const title = String(body.title ?? requestType)
-  const amount = Number(body.amount ?? 0)
-  const attachments = Array.isArray(body.attachments) ? body.attachments : []
+  const attachments = normalizeAttachments(body.attachments)
+  const payload = attachmentPayloadMetadata(body, attachments) as Record<string, unknown>
+
+  // ESS imprest surrender auto-generates its lines from the selected (posted) imprest.
+  if (requestType === 'imprestSurrender' && body.imprest) {
+    const imprest = await getRequestByNo(String(body.imprest))
+    if (!imprest || imprest.makerEmployeeNo !== user.employeeNo) {
+      throw new AppError('Selected imprest was not found', 404, 'IMPREST_NOT_FOUND')
+    }
+    const imprestLines = Array.isArray(imprest.payload?.lines)
+      ? (imprest.payload.lines as Record<string, unknown>[])
+      : []
+    payload.lines = imprestLines.map((line, index) => ({
+      id: `sl-${index + 1}`,
+      lineNo: (index + 1) * 10000,
+      accountNo: String(line.accountNo ?? line.advanceType ?? ''),
+      surrenderDocNo: imprest.requestNo,
+      accountName: String(line.accountName ?? line.destination ?? ''),
+      amount: Number(line.amount ?? 0),
+      actualSpent: '',
+      cashReceiptNo: '',
+      cashReceiptAmount: '',
+    }))
+    payload.imprestNo = imprest.requestNo
+  }
+
+  const lineAmount = Array.isArray(payload.lines)
+    ? (payload.lines as Record<string, unknown>[]).reduce((sum, line) => sum + Number(line.amount ?? 0), 0)
+    : undefined
+  const amount = lineAmount ?? Number(body.amount ?? 0)
 
   const row = await createRequest({
     requestType,
@@ -231,11 +434,30 @@ router.post('/requests', asyncHandler(async (req: AuthedRequest, res) => {
     sourceDocumentEntity: requestType,
     approverEmployeeNo: approver.employeeNo,
     approverName: approver.name,
-    payload: body,
+    payload,
     attachments,
   })
 
   res.status(201).json(row)
+}))
+
+router.post('/requests/:id/submit', asyncHandler(async (req: AuthedRequest, res) => {
+  const row = await getRequestById(req.params.id)
+  if (!row) throw new AppError('Request was not found', 404, 'REQUEST_NOT_FOUND')
+  if (row.makerEmployeeNo !== currentEmployeeNo(req)) {
+    throw new AppError('Only the maker can submit this request', 403)
+  }
+  if (row.status !== 'Draft') {
+    throw new AppError('Only draft requests can be submitted', 422)
+  }
+  const user = await currentUser(req)
+  const updated = await updateRequestStatus(row.id, {
+    status: 'Pending Approval',
+    actorEmployeeNo: user.employeeNo,
+    actorName: displayName(user),
+    role: 'Maker',
+  })
+  res.json(updated)
 }))
 
 router.post('/requests/:id/cancel', asyncHandler(async (req: AuthedRequest, res) => {
@@ -260,6 +482,108 @@ router.delete('/requests/:id', asyncHandler(async (req: AuthedRequest, res) => {
   if (row.status !== 'Draft') throw new AppError('Only draft requests can be deleted', 422)
   await deleteRequest(row.id)
   res.status(204).send()
+}))
+
+/**
+ * Load a request the current user may still edit (maker + Draft/Open).
+ * ESS keeps lines/attachments editable until the document is sent for approval.
+ */
+async function loadEditableRequest(req: AuthedRequest, { editableStatuses = ['Draft'] }: { editableStatuses?: string[] } = {}) {
+  const row = await getRequestById(req.params.id)
+  if (!row) throw new AppError('Request was not found', 404, 'REQUEST_NOT_FOUND')
+  if (row.makerEmployeeNo !== currentEmployeeNo(req)) {
+    throw new AppError('Only the maker can modify this request', 403, 'REQUEST_FORBIDDEN')
+  }
+  if (!editableStatuses.includes(row.status)) {
+    throw new AppError('This request can no longer be edited', 422, 'REQUEST_LOCKED')
+  }
+  return row
+}
+
+router.patch('/requests/:id', asyncHandler(async (req: AuthedRequest, res) => {
+  await loadEditableRequest(req)
+  const { module: _m, requestType: _r, lines: _l, attachments: _a, ...patch } = req.body as Record<string, unknown>
+  const updated = await updateRequestHeader(req.params.id, patch)
+  res.json(updated)
+}))
+
+router.post('/requests/:id/lines', asyncHandler(async (req: AuthedRequest, res) => {
+  await loadEditableRequest(req)
+  const line = req.body as Record<string, unknown>
+  const updated = await addRequestLine(req.params.id, line)
+  res.status(201).json(updated)
+}))
+
+router.put('/requests/:id/lines', asyncHandler(async (req: AuthedRequest, res) => {
+  await loadEditableRequest(req)
+  const lines = Array.isArray(req.body?.lines) ? (req.body.lines as Record<string, unknown>[]) : []
+  const updated = await setRequestLines(req.params.id, lines)
+  res.json(updated)
+}))
+
+router.patch('/requests/:id/lines/:lineId', asyncHandler(async (req: AuthedRequest, res) => {
+  await loadEditableRequest(req)
+  const updated = await updateRequestLine(req.params.id, req.params.lineId, req.body as Record<string, unknown>)
+  res.json(updated)
+}))
+
+router.delete('/requests/:id/lines/:lineId', asyncHandler(async (req: AuthedRequest, res) => {
+  await loadEditableRequest(req)
+  const updated = await deleteRequestLine(req.params.id, req.params.lineId)
+  res.json(updated)
+}))
+
+router.post('/requests/:id/attachments', asyncHandler(async (req: AuthedRequest, res) => {
+  await loadEditableRequest(req, { editableStatuses: ['Draft', 'Pending Approval'] })
+  const [attachment] = normalizeAttachments([req.body])
+  if (!attachment) throw new AppError('Attachment is required', 422)
+  const updated = await addRequestAttachment(req.params.id, {
+    ...attachment,
+    uploadedBy: currentEmployeeNo(req),
+  })
+  res.status(201).json(updated)
+}))
+
+router.delete('/requests/:id/attachments/:attachmentId', asyncHandler(async (req: AuthedRequest, res) => {
+  await loadEditableRequest(req, { editableStatuses: ['Draft', 'Pending Approval'] })
+  const updated = await deleteRequestAttachment(req.params.id, req.params.attachmentId)
+  res.json(updated)
+}))
+
+router.get('/attachments/:id/download', asyncHandler(async (req: AuthedRequest, res) => {
+  const attachment = await getRequestAttachment(req.params.id)
+  if (!attachment) throw new AppError('Attachment was not found', 404, 'ATTACHMENT_NOT_FOUND')
+  const user = await currentUser(req)
+  if (!attachmentCanBeRead(attachment, user)) {
+    throw new AppError('You cannot access this attachment', 403, 'ATTACHMENT_FORBIDDEN')
+  }
+  res.setHeader('Content-Type', attachment.mimeType)
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="${safeFileName(attachment.fileName).replaceAll('"', '')}"`,
+  )
+  res.send(Buffer.from(attachment.contentBase64, 'base64'))
+}))
+
+router.get('/requests/:requestId/attachments/:id/download', asyncHandler(async (req: AuthedRequest, res) => {
+  const attachment = await getRequestAttachment(req.params.id)
+  if (
+    !attachment ||
+    !attachment.request ||
+    attachment.request.id !== req.params.requestId
+  ) {
+    throw new AppError('Attachment was not found', 404, 'ATTACHMENT_NOT_FOUND')
+  }
+  const user = await currentUser(req)
+  if (!attachmentCanBeRead(attachment, user)) {
+    throw new AppError('You cannot access this attachment', 403, 'ATTACHMENT_FORBIDDEN')
+  }
+  res.setHeader('Content-Type', attachment.mimeType)
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="${safeFileName(attachment.fileName).replaceAll('"', '')}"`,
+  )
+  res.send(Buffer.from(attachment.contentBase64, 'base64'))
 }))
 
 router.get('/approvals', asyncHandler(async (req: AuthedRequest, res) => {
@@ -329,6 +653,39 @@ router.get('/profile/details', asyncHandler(async (req: AuthedRequest, res) => {
     qualifications: [],
     assignedAssets: [],
   })
+}))
+
+router.get('/profile/attachments', asyncHandler(async (req: AuthedRequest, res) => {
+  res.json({ rows: await listProfileAttachments(currentEmployeeNo(req)) })
+}))
+
+router.post('/profile/attachments', asyncHandler(async (req: AuthedRequest, res) => {
+  const [attachment] = normalizeAttachments([req.body])
+  if (!attachment) throw new AppError('Attachment is required', 422)
+  const created = await createProfileAttachment({
+    employeeNo: currentEmployeeNo(req),
+    uploadedBy: currentEmployeeNo(req),
+    ...attachment,
+    mimeType: attachment.fileType,
+  })
+  res.status(201).json(created)
+}))
+
+router.get('/profile/attachments/:id/download', asyncHandler(async (req: AuthedRequest, res) => {
+  const attachment = await getRequestAttachment(req.params.id)
+  if (!attachment || attachment.scope !== 'profile') {
+    throw new AppError('Employee attachment was not found', 404, 'ATTACHMENT_NOT_FOUND')
+  }
+  const user = await currentUser(req)
+  if (!attachmentCanBeRead(attachment, user)) {
+    throw new AppError('You cannot access this attachment', 403, 'ATTACHMENT_FORBIDDEN')
+  }
+  res.setHeader('Content-Type', attachment.mimeType)
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="${safeFileName(attachment.fileName).replaceAll('"', '')}"`,
+  )
+  res.send(Buffer.from(attachment.contentBase64, 'base64'))
 }))
 
 router.get('/leave/types', (_req, res) => {
@@ -491,6 +848,43 @@ router.post('/leave/cancel', asyncHandler(async (req: AuthedRequest, res) => {
   res.json({ ok: true, message: 'Leave request cancelled.' })
 }))
 
+router.get('/leave/statement', asyncHandler(async (req: AuthedRequest, res) => {
+  const user = await currentUser(req)
+  const leaveTypeCode = String(req.query.leaveType ?? '')
+  if (!leaveTypeCode) throw new AppError('Leave type is required', 422)
+  const leaveType = findLeaveType(leaveTypeCode)
+  const rows = (await listRequests({ module: 'leave', employeeNo: user.employeeNo }))
+    .filter((row) => row.payload?.leaveType === leaveTypeCode)
+  const used = rows
+    .filter((row) => ['Approved', 'Posted'].includes(row.status))
+    .reduce((sum, row) => sum + Number(row.payload?.appliedDays ?? 0), 0)
+  const { entitlement } = leaveEntitlement(user, leaveTypeCode)
+  const pdf = createTextPdf('Leave Statement', [
+    `Employee: ${user.employeeNo} - ${displayName(user)}`,
+    `Leave type: ${leaveType?.description ?? leaveTypeCode}`,
+    `Entitlement: ${entitlement}`,
+    `Used: ${used}`,
+    `Balance: ${Math.max(0, entitlement - used)}`,
+    '',
+    'Application No | Start Date | End Date | Days | Status',
+    ...rows.map((row) =>
+      [
+        row.requestNo,
+        payloadText(row.payload, 'startDate'),
+        payloadText(row.payload, 'endDate'),
+        payloadText(row.payload, 'appliedDays', '0'),
+        row.status,
+      ].join(' | '),
+    ),
+  ])
+  res.setHeader('Content-Type', 'application/pdf')
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="${safeFileName(user.employeeNo)}_leave.pdf"`,
+  )
+  res.send(pdf)
+}))
+
 router.get('/items', (_req, res) => {
   res.json({ rows: itemMaster })
 })
@@ -574,32 +968,36 @@ router.get('/reports/gate-pass-log', asyncHandler(async (req: AuthedRequest, res
 }))
 
 router.get('/work-tickets', asyncHandler(async (req: AuthedRequest, res) => {
-  const rows = await listRequests({ module: 'transport', employeeNo: currentEmployeeNo(req) })
-  res.json({
-    rows: rows.map((row) => ({
-      id: row.id,
-      ticketNo: `WT-${row.requestNo}`,
-      vehicle: payloadText(row.payload, 'vehicleNo', payloadText(row.payload, 'transportType', 'Pending assignment')),
-      driver: payloadText(row.payload, 'driverName', row.approverName ?? 'Pending dispatch'),
-      date: payloadText(row.payload, 'tripDate', row.createdAt.slice(0, 10)),
-      status: row.status,
-    })),
-  })
+  currentEmployeeNo(req)
+  res.json({ rows: [] })
 }))
+
+router.get('/work-tickets/:ticketNo', (_req, _res, next) => {
+  next(new AppError('Work tickets are sourced from Business Central', 404, 'WORK_TICKET_NOT_FOUND'))
+})
+
+router.delete('/work-tickets/:ticketNo/lines/:lineNo', (_req, _res, next) => {
+  next(new AppError('Work-ticket line deletion is only available in Business Central', 501, 'BC_ONLY'))
+})
 
 router.get('/hod/team-requests', asyncHandler(async (req: AuthedRequest, res) => {
   const user = await currentUser(req)
   if (!user.HOD && !user.roles?.includes('hod')) throw new AppError('HOD access is required', 403)
   const departments = scopedDepartments(user)
-  const rows = (await listRequests()).filter((row) => departments.has(row.departmentCode))
+  const rows = (await listUsers()).filter(
+    (row) =>
+      row.employeeNo !== user.employeeNo &&
+      row.status === 'Active' &&
+      departments.has(row.department),
+  )
   res.json({
     rows: rows.map((row) => ({
-      id: row.id,
-      employee: row.makerName,
-      employeeNo: row.makerEmployeeNo,
-      requestType: row.requestType,
-      requestNo: row.requestNo,
-      title: row.title,
+      id: row.employeeNo,
+      employee: `${row.name} ${row.lastName}`.trim(),
+      employeeNo: row.employeeNo,
+      requestType: row.jobTitle,
+      requestNo: row.employeeNo,
+      title: row.departmentName,
       date: row.createdAt.slice(0, 10),
       status: row.status,
     })),
@@ -645,6 +1043,38 @@ router.get('/payroll/payslip', asyncHandler(async (req: AuthedRequest, res) => {
   res.json(row)
 }))
 
+router.get('/payroll/periods', asyncHandler(async (req: AuthedRequest, res) => {
+  const rows = await listPayrollSlips({ employeeNo: currentEmployeeNo(req) })
+  const periods = [...new Map(
+    rows.map((row) => [`${row.year}-${row.month}`, { year: row.year, month: row.month }]),
+  ).values()]
+  res.json({ rows: periods })
+}))
+
+router.get('/payroll/payslip/pdf', asyncHandler(async (req: AuthedRequest, res) => {
+  const year = Number(req.query.year)
+  const month = typeof req.query.month === 'string' ? req.query.month : ''
+  if (!year || !month) throw new AppError('Payroll year and month are required', 422)
+  const row = await getPayrollSlip({ employeeNo: currentEmployeeNo(req), year, month })
+  if (!row) throw new AppError('Payslip was not found for the selected period', 404, 'PAYSLIP_NOT_FOUND')
+  const pdf = createTextPdf(`Payslip - ${row.month} ${row.year}`, [
+    `Employee: ${row.employeeNo} - ${row.employeeName}`,
+    `Department: ${row.departmentName || row.departmentCode}`,
+    '',
+    ...row.lines.map((line) => `${line.label}: ${Number(line.amount).toFixed(2)}`),
+    '',
+    `Gross Pay: ${row.grossPay.toFixed(2)}`,
+    `Total Deductions: ${row.totalDeductions.toFixed(2)}`,
+    `Net Pay: ${row.netPay.toFixed(2)}`,
+  ])
+  res.setHeader('Content-Type', 'application/pdf')
+  res.setHeader(
+    'Content-Disposition',
+    `attachment; filename="${safeFileName(row.employeeNo)}_ps.pdf"`,
+  )
+  res.send(pdf)
+}))
+
 router.get('/payroll/master-roll', asyncHandler(async (req: AuthedRequest, res) => {
   const user = await currentUser(req)
   if (!user.CEO && !user.roles?.includes('ceo')) throw new AppError('CEO access is required', 403)
@@ -664,6 +1094,33 @@ router.get('/payroll/master-roll', asyncHandler(async (req: AuthedRequest, res) 
   res.json({ rows, summary })
 }))
 
+router.get('/payroll/master-roll/pdf', asyncHandler(async (req: AuthedRequest, res) => {
+  const user = await currentUser(req)
+  if (!user.CEO && !user.roles?.includes('ceo')) throw new AppError('CEO access is required', 403)
+  const year = Number(req.query.year)
+  const month = typeof req.query.month === 'string' ? req.query.month : ''
+  const postingGroup = typeof req.query.postingGroup === 'string' ? req.query.postingGroup : ''
+  if (!year || !month) throw new AppError('Payroll year and month are required', 422)
+  const rows = await listPayrollSlips({ year, month })
+  const pdf = createTextPdf(`Payroll Master Roll - ${month} ${year}`, [
+    postingGroup ? `Posting Group: ${postingGroup}` : 'Posting Group: All',
+    '',
+    ...rows.map((row) =>
+      [
+        row.employeeNo,
+        row.employeeName,
+        row.departmentName || row.departmentCode,
+        row.grossPay.toFixed(2),
+        row.totalDeductions.toFixed(2),
+        row.netPay.toFixed(2),
+      ].join(' | '),
+    ),
+  ])
+  res.setHeader('Content-Type', 'application/pdf')
+  res.setHeader('Content-Disposition', `attachment; filename="${year}-${month}_masterroll.pdf"`)
+  res.send(pdf)
+}))
+
 router.get('/documents', asyncHandler(async (_req, res) => {
   const rows = await listPolicyDocuments()
   res.json({ rows })
@@ -675,7 +1132,12 @@ router.get('/documents/:id/download', asyncHandler(async (req, res) => {
   const fileName = doc.fileName.replace(/"/g, '')
   res.setHeader('Content-Type', doc.mimeType)
   res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`)
-  res.send(doc.content ?? '')
+  const content = doc.content ?? ''
+  const bytes =
+    doc.mimeType === 'application/pdf' && /^[A-Za-z0-9+/=\r\n]+$/.test(content)
+      ? Buffer.from(content, 'base64')
+      : Buffer.from(content)
+  res.send(bytes)
 }))
 
 router.get('/attendance', asyncHandler(async (req: AuthedRequest, res) => {

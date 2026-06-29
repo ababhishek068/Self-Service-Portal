@@ -6,6 +6,7 @@ export const moduleLabels: Record<PortalModuleKey, string> = {
   imprestSurrender: 'Imprest Surrender',
   staffClaim: 'Staff Claims',
   pettyCash: 'Petty Cash Request',
+  pettyCashReplenishment: 'Petty Cash Replenishment',
   storeRequisition: 'Store Requisition',
   purchaseRequisition: 'Purchase Requisition',
   fuelRequest: 'Fuel Requisition',

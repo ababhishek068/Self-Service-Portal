@@ -3,8 +3,12 @@ import { useEffect, useState } from 'react'
 import { format, parseISO } from 'date-fns'
 import { PageWrapper } from '@/components/layout/PageWrapper'
 import { DataTable, type DataTableColumn } from '@/components/shared/DataTable'
+import { FileUpload } from '@/components/shared/FileUpload'
 import { PortalNewButton } from '@/components/shared/PortalNewButton'
+import { useToast } from '@/components/feedback/ToastProvider'
+import { useConfirm } from '@/components/feedback/ConfirmProvider'
 import { StatusBadge } from '@/components/shared/StatusBadge'
+import { RequestProgress } from '@/components/shared/RequestProgress'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Input } from '@/components/ui/input'
@@ -15,14 +19,23 @@ import { Textarea } from '@/components/ui/textarea'
 import {
   fetchLeaveTypes,
   fetchRelievers,
+  cancelLeaveRequest,
   getLeaveBalance,
   getLeaveDates,
   listLeaveRequests,
+  requestLeaveApproval,
   submitLeaveRequest,
   type LeaveListRow,
   type LeaveType,
 } from '@/api/endpoints/leave'
+import {
+  deleteRequestAttachment,
+  downloadRequestAttachment,
+  getModuleRequest,
+  uploadRequestAttachment,
+} from '@/api/endpoints/requestEndpoint'
 import { useAuth } from '@/hooks/useAuth'
+import type { Attachment } from '@/types/erp.types'
 
 const DASH = '—'
 
@@ -52,10 +65,33 @@ function filterLeaveTypesByGender(types: LeaveType[], gender: string): LeaveType
   })
 }
 
+function payloadValue(payload: Record<string, unknown>, keys: string[], fallback = DASH) {
+  for (const key of keys) {
+    const value = payload[key]
+    if (value !== undefined && value !== null && String(value) !== '') return String(value)
+  }
+  return fallback
+}
+
 export function LeaveRequest() {
   const { employee } = useAuth()
   const queryClient = useQueryClient()
+  const toast = useToast()
+  const confirm = useConfirm()
   const leaveListQuery = useQuery({ queryKey: ['hr', 'leave-list'], queryFn: listLeaveRequests })
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null)
+  const [pendingAttachments, setPendingAttachments] = useState<Attachment[]>([])
+  const [creationAttachments, setCreationAttachments] = useState<Attachment[]>([])
+  const [detailAction, setDetailAction] = useState<string | null>(null)
+  const detailQuery = useQuery({
+    queryKey: ['hr', 'leave-detail', selectedRequestId],
+    queryFn: () =>
+      getModuleRequest(
+        { module: 'leave', entity: 'leave' },
+        selectedRequestId!,
+      ),
+    enabled: Boolean(selectedRequestId),
+  })
   const [leaveType, setLeaveType] = useState('')
   const [entitlement, setEntitlement] = useState<number | null>(null)
   const [balance, setBalance] = useState<number | null>(null)
@@ -176,6 +212,7 @@ export function LeaveRequest() {
     setReturnDate('')
     setReliever('')
     setReason('')
+    setCreationAttachments([])
     setError(null)
     setSuccess(null)
   }
@@ -196,11 +233,24 @@ export function LeaveRequest() {
       setError('Please complete all required fields.')
       return
     }
+    if (leaveType === 'SICK' && creationAttachments.length === 0) {
+      setError('A supporting attachment is required for sick leave.')
+      return
+    }
+    if (creationAttachments.some((file) => file.size > 2_999_000)) {
+      setError('Leave attachments cannot exceed 3 MB each.')
+      return
+    }
     if (balance !== null && submittedDays > balance) {
       setError(`Insufficient leave balance. Available: ${balance} day(s).`)
       return
     }
-    if (!window.confirm('Are you sure you want to submit this leave application?')) return
+    const confirmed = await confirm({
+      title: 'Create leave draft',
+      message: 'Create this leave application as a draft? You can review attachments before requesting approval.',
+      confirmLabel: 'Create draft',
+    })
+    if (!confirmed) return
     setSubmittingForm(true)
     try {
       const result = await submitLeaveRequest({
@@ -212,20 +262,155 @@ export function LeaveRequest() {
         reason,
       })
       if (result.ok) {
+        const createdRequestId =
+          result.request?.id ??
+          (result.returnValue ? `leave-${result.returnValue}` : '')
+        let attachmentError = ''
+        if (creationAttachments.length > 0) {
+          try {
+            if (!createdRequestId) {
+              throw new Error('The document number was not returned.')
+            }
+            for (const file of creationAttachments) {
+              await uploadRequestAttachment(createdRequestId, {
+                fileName: file.fileName,
+                fileType: file.fileType,
+                size: file.size,
+                contentBase64: file.contentBase64,
+                description: file.description || 'Leave Attachment',
+              })
+            }
+          } catch (err: unknown) {
+            attachmentError = err instanceof Error ? err.message : 'Attachment upload failed.'
+          }
+        }
         await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
         await queryClient.invalidateQueries({ queryKey: ['hr', 'leave-list'] })
         resetForm()
-        setSuccess(result.message ?? 'Leave application submitted successfully.')
+        if (createdRequestId) setSelectedRequestId(createdRequestId)
+        setSuccess(attachmentError
+          ? 'Leave draft was created, but its attachment could not be uploaded. Review the draft and retry the upload.'
+          : 'Leave draft created. Review it below, then click Request Approval.')
         setError(null)
+        toast.success('Leave draft created. Review it before requesting approval.')
+        if (attachmentError) toast.error(attachmentError, 'Attachment not uploaded')
       } else {
         setError(result.message ?? 'Submission failed.')
+        toast.error(result.message ?? 'Submission failed.', 'Leave not submitted')
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Submission failed.')
+      toast.error(err instanceof Error ? err.message : 'Submission failed.', 'Leave not submitted')
     } finally {
       setSubmittingForm(false)
     }
   }
+
+  const refreshLeave = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['hr', 'leave-list'] })
+    await queryClient.invalidateQueries({ queryKey: ['dashboard'] })
+    if (selectedRequestId) await detailQuery.refetch()
+  }
+
+  const uploadAttachments = async () => {
+    const selected = detailQuery.data
+    if (!selected || pendingAttachments.length === 0) return
+    setDetailAction('upload')
+    try {
+      for (const file of pendingAttachments) {
+        await uploadRequestAttachment(selected.id, {
+          fileName: file.fileName,
+          fileType: file.fileType,
+          size: file.size,
+          contentBase64: file.contentBase64,
+          description: file.description || file.fileName,
+        })
+      }
+      setPendingAttachments([])
+      await refreshLeave()
+      toast.success('Leave attachment uploaded')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Attachment upload failed', 'Upload failed')
+    } finally {
+      setDetailAction(null)
+    }
+  }
+
+  const removeAttachment = async (attachmentId: string) => {
+    const selected = detailQuery.data
+    if (!selected) return
+    const confirmed = await confirm({
+      title: 'Delete attachment',
+      message: 'Delete this attachment from the leave application?',
+      confirmLabel: 'Delete',
+      tone: 'danger',
+    })
+    if (!confirmed) return
+    setDetailAction(attachmentId)
+    try {
+      await deleteRequestAttachment(selected.id, attachmentId)
+      await refreshLeave()
+      toast.success('Attachment deleted')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Attachment deletion failed', 'Delete failed')
+    } finally {
+      setDetailAction(null)
+    }
+  }
+
+  const cancelSelectedLeave = async () => {
+    const selected = detailQuery.data
+    if (!selected) return
+    const confirmed = await confirm({
+      title: 'Cancel leave application',
+      message: `Cancel leave application ${selected.requestNo}?`,
+      confirmLabel: 'Cancel application',
+      tone: 'danger',
+    })
+    if (!confirmed) return
+    setDetailAction('cancel')
+    try {
+      const result = await cancelLeaveRequest(selected.requestNo)
+      if (!result.ok) throw new Error(result.message || 'Leave cancellation failed')
+      await refreshLeave()
+      toast.success(result.message || 'Leave application cancelled')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Leave cancellation failed', 'Cancel failed')
+    } finally {
+      setDetailAction(null)
+    }
+  }
+
+  const requestSelectedLeaveApproval = async () => {
+    const selected = detailQuery.data
+    if (!selected) return
+    const confirmed = await confirm({
+      title: 'Request leave approval',
+      message: `Send leave application ${selected.requestNo} for approval?`,
+      confirmLabel: 'Request approval',
+    })
+    if (!confirmed) return
+    setDetailAction('approval')
+    try {
+      const result = await requestLeaveApproval(selected.requestNo)
+      if (!result.ok) throw new Error(result.message || 'Approval request failed')
+      await refreshLeave()
+      toast.success(result.message || 'Leave application sent for approval')
+    } catch (err: unknown) {
+      toast.error(err instanceof Error ? err.message : 'Approval request failed', 'Approval not requested')
+    } finally {
+      setDetailAction(null)
+    }
+  }
+
+  const selected = detailQuery.data
+  const selectedPayload = selected?.payload ?? {}
+  const selectedIsMutable = selected
+    ? ['Open', 'Draft', 'Pending Approval'].includes(selected.status)
+    : false
+  const selectedCanRequestApproval = selected
+    ? ['Open', 'Draft'].includes(selected.status)
+    : false
 
   return (
     <PageWrapper
@@ -395,11 +580,12 @@ export function LeaveRequest() {
                     required
                   />
                 </div>
-                <div className="rounded border-l-4 border-orange-500 bg-orange-50 p-3 text-sm text-orange-800">
-                  <p className="font-bold">Leave Attachments</p>
-                  <p className="mt-1">
-                    After Submission, click on the applied leave and add relevant attachments.
+                <div className="space-y-2 rounded border-l-4 border-orange-500 bg-orange-50 p-3 text-sm text-orange-800">
+                  <p className="font-bold">
+                    Leave Attachments{leaveType === 'SICK' ? ' (Required)' : ' (Optional)'}
                   </p>
+                  <FileUpload files={creationAttachments} onChange={setCreationAttachments} />
+                  <p>Maximum 3 MB per file for leave creation.</p>
                 </div>
               </div>
 
@@ -410,7 +596,7 @@ export function LeaveRequest() {
                   className="min-w-[140px] rounded-full"
                   disabled={submittingForm || !canSubmit}
                 >
-                  {submittingForm ? 'Submitting…' : 'Submit'}
+                  {submittingForm ? 'Creating draft…' : 'Create draft'}
                 </Button>
               </div>
             </div>
@@ -424,10 +610,171 @@ export function LeaveRequest() {
           rows={leaveListQuery.data ?? []}
           columns={leaveColumns}
           getRowId={(row) => row.ApplicationCode}
+          selectedRowId={selected?.requestNo}
+          onRowClick={(row) => {
+            setSelectedRequestId(`leave-${row.ApplicationCode}`)
+            setPendingAttachments([])
+          }}
           compact
           emptyTitle="No leave applications yet."
         />
       </div>
+
+      {selectedRequestId ? (
+        <div className="portal-form-card mt-6 overflow-hidden">
+          <div className="portal-form-card-header flex items-center justify-between gap-3 px-4 py-3 text-white">
+            <h2 className="font-semibold">Leave Application Details</h2>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => {
+                setSelectedRequestId(null)
+                setPendingAttachments([])
+              }}
+            >
+              Close
+            </Button>
+          </div>
+          <div className="space-y-5 p-4 sm:p-6">
+            {detailQuery.isLoading ? (
+              <Skeleton className="h-40 w-full" />
+            ) : detailQuery.isError || !selected ? (
+              <p className="rounded border-l-4 border-red-500 bg-red-50 p-3 text-sm text-red-700">
+                Could not load this leave application.
+              </p>
+            ) : (
+              <>
+                <RequestProgress status={selected.status} />
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div>
+                    <p className="text-xs text-slate-500">Application No.</p>
+                    <p className="font-semibold text-slate-900">{selected.requestNo}</p>
+                  </div>
+                  <StatusBadge status={selected.status} />
+                </div>
+
+                <dl className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                  <div>
+                    <dt className="text-xs text-slate-500">Leave Type</dt>
+                    <dd className="text-sm font-medium">
+                      {payloadValue(selectedPayload, ['LeaveType', 'Leave_Type', 'leaveTypeDescription', 'leaveType'])}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-slate-500">Days Applied</dt>
+                    <dd className="text-sm font-medium">
+                      {payloadValue(selectedPayload, ['DaysApplied', 'Days_Applied', 'appliedDays'])}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-slate-500">Start Date</dt>
+                    <dd className="text-sm font-medium">
+                      {payloadValue(selectedPayload, ['StartDate', 'Start_Date', 'startDate'])}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-slate-500">End Date</dt>
+                    <dd className="text-sm font-medium">
+                      {payloadValue(selectedPayload, ['EndDate', 'End_Date', 'endDate'])}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-slate-500">Return Date</dt>
+                    <dd className="text-sm font-medium">
+                      {payloadValue(selectedPayload, ['ReturnDate', 'Return_Date', 'returnDate'])}
+                    </dd>
+                  </div>
+                  <div>
+                    <dt className="text-xs text-slate-500">Reason</dt>
+                    <dd className="text-sm font-medium">
+                      {payloadValue(selectedPayload, ['Reason', 'reason'])}
+                    </dd>
+                  </div>
+                </dl>
+
+                <section className="border-t border-slate-200 pt-4">
+                  <h3 className="mb-3 text-sm font-semibold text-[var(--portal-navy)]">Attachments</h3>
+                  {selectedIsMutable ? (
+                    <div className="mb-4 space-y-3 rounded-md border border-slate-200 p-3">
+                      <FileUpload files={pendingAttachments} onChange={setPendingAttachments} />
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={detailAction === 'upload' || pendingAttachments.length === 0}
+                        onClick={() => void uploadAttachments()}
+                      >
+                        {detailAction === 'upload' ? 'Uploading…' : 'Upload'}
+                      </Button>
+                    </div>
+                  ) : null}
+                  {selected.attachments.length ? (
+                    <div className="divide-y divide-slate-100 border-y border-slate-200">
+                      {selected.attachments.map((attachment) => (
+                        <div key={attachment.id} className="flex flex-wrap items-center justify-between gap-3 py-3">
+                          <div className="min-w-0">
+                            <p className="truncate text-sm font-medium">
+                              {attachment.description || attachment.fileName}
+                            </p>
+                            <p className="text-xs text-slate-500">{attachment.fileName}</p>
+                          </div>
+                          <div className="flex gap-2">
+                            <Button
+                              type="button"
+                              variant="outline"
+                              size="sm"
+                              disabled={detailAction === attachment.id}
+                              onClick={() => void downloadRequestAttachment(selected.id, attachment)}
+                            >
+                              Download
+                            </Button>
+                            {selectedIsMutable ? (
+                              <Button
+                                type="button"
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-600"
+                                disabled={detailAction === attachment.id}
+                                onClick={() => void removeAttachment(attachment.id)}
+                              >
+                                Delete
+                              </Button>
+                            ) : null}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm italic text-slate-500">No attachments.</p>
+                  )}
+                </section>
+
+                {selectedIsMutable ? (
+                  <div className="flex flex-wrap justify-end gap-2 border-t border-slate-200 pt-4">
+                    {selectedCanRequestApproval ? (
+                      <Button
+                        type="button"
+                        disabled={detailAction === 'approval'}
+                        onClick={() => void requestSelectedLeaveApproval()}
+                      >
+                        {detailAction === 'approval' ? 'Requesting…' : 'Request Approval'}
+                      </Button>
+                    ) : null}
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      disabled={detailAction === 'cancel'}
+                      onClick={() => void cancelSelectedLeave()}
+                    >
+                      {detailAction === 'cancel' ? 'Cancelling…' : 'Cancel Application'}
+                    </Button>
+                  </div>
+                ) : null}
+              </>
+            )}
+          </div>
+        </div>
+      ) : null}
     </PageWrapper>
   )
 }

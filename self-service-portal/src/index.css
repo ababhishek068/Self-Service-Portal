@@ -773,9 +773,251 @@ textarea {
   transform: rotate(-90deg);
 }
 
+/* Toast notifications */
+@keyframes portal-toast-in {
+  from {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes portal-toast-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.96);
+  }
+}
+
+@keyframes portal-toast-progress {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+.animate-toast-in {
+  animation: portal-toast-in 0.3s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.animate-toast-out {
+  animation: portal-toast-out 0.22s ease-in both;
+}
+
+.animate-toast-progress {
+  width: 100%;
+  animation: portal-toast-progress linear forwards;
+}
+
+/* Modal dialog */
+@keyframes portal-overlay-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes portal-overlay-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes portal-dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(18px) scale(0.94);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes portal-dialog-out {
+  from {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+  to {
+    opacity: 0;
+    transform: translateY(10px) scale(0.96);
+  }
+}
+
+.animate-overlay-in {
+  animation: portal-overlay-in 0.2s ease-out both;
+}
+
+.animate-overlay-out {
+  animation: portal-overlay-out 0.16s ease-in both;
+}
+
+.animate-dialog-in {
+  animation: portal-dialog-in 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+.animate-dialog-out {
+  animation: portal-dialog-out 0.16s ease-in both;
+}
+
+/* Funky button: animated gradient + glow */
+.portal-btn-gradient {
+  background-image: linear-gradient(
+    100deg,
+    var(--portal-navy) 0%,
+    #0a5cad 30%,
+    var(--portal-orange) 60%,
+    var(--portal-navy) 100%
+  );
+  background-size: 220% 100%;
+  background-position: 0% 50%;
+  color: #fff;
+  transition:
+    background-position 0.5s ease,
+    transform 0.2s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.25s ease;
+}
+
+.portal-btn-gradient:hover {
+  background-position: 100% 50%;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 22px rgba(227, 82, 5, 0.32);
+}
+
+.portal-btn-gradient:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Tap ripple feedback */
+@keyframes portal-ripple {
+  to {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+.portal-ripple {
+  position: absolute;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.55);
+  transform: scale(0);
+  opacity: 0.7;
+  pointer-events: none;
+  animation: portal-ripple 0.6s ease-out forwards;
+}
+
+/* Animated count-up pop for stat numbers */
+@keyframes portal-count-pop {
+  0% {
+    opacity: 0;
+    transform: translateY(6px) scale(0.9);
+  }
+  60% {
+    transform: translateY(0) scale(1.06);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-count-pop {
+  animation: portal-count-pop 0.5s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Success check pop */
+@keyframes portal-check-pop {
+  0% {
+    transform: scale(0) rotate(-25deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.15) rotate(4deg);
+  }
+  100% {
+    transform: scale(1) rotate(0);
+    opacity: 1;
+  }
+}
+
+.animate-check-pop {
+  animation: portal-check-pop 0.45s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* Staggered table rows */
+@keyframes portal-row-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.portal-row-stagger > tr {
+  animation: portal-row-in 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+.portal-row-stagger > tr:nth-child(1) { animation-delay: 0ms; }
+.portal-row-stagger > tr:nth-child(2) { animation-delay: 35ms; }
+.portal-row-stagger > tr:nth-child(3) { animation-delay: 70ms; }
+.portal-row-stagger > tr:nth-child(4) { animation-delay: 105ms; }
+.portal-row-stagger > tr:nth-child(5) { animation-delay: 140ms; }
+.portal-row-stagger > tr:nth-child(6) { animation-delay: 175ms; }
+.portal-row-stagger > tr:nth-child(7) { animation-delay: 210ms; }
+.portal-row-stagger > tr:nth-child(8) { animation-delay: 245ms; }
+
+.portal-row-click {
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    box-shadow 0.18s ease,
+    transform 0.18s ease;
+}
+
+.portal-row-click:hover {
+  background-color: rgba(0, 51, 102, 0.05);
+  box-shadow: inset 3px 0 0 var(--portal-orange);
+}
+
 @media (prefers-reduced-motion: reduce) {
   html {
     scroll-behavior: auto;
+  }
+
+  .animate-toast-in,
+  .animate-toast-out,
+  .animate-toast-progress,
+  .animate-overlay-in,
+  .animate-overlay-out,
+  .animate-dialog-in,
+  .animate-dialog-out,
+  .animate-count-pop,
+  .animate-check-pop,
+  .portal-row-stagger > tr {
+    animation: none !important;
+  }
+
+  .portal-btn-gradient:hover,
+  .portal-row-click:hover {
+    transform: none;
   }
 
   .animate-page-in,

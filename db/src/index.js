@@ -13,8 +13,18 @@ export {
   getRequestByNo,
   createRequest,
   updateRequestStatus,
+  updateRequestHeader,
+  addRequestLine,
+  updateRequestLine,
+  setRequestLines,
+  deleteRequestLine,
+  addRequestAttachment,
+  deleteRequestAttachment,
   deleteRequest,
   dashboardSummary,
+  getRequestAttachment,
+  listProfileAttachments,
+  createProfileAttachment,
 } from './requestRepository.js'
 export {
   listAttendance,

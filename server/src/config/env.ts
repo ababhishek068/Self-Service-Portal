@@ -76,6 +76,7 @@ export const env = {
 
   /** Origins allowed to call this API (the React app's URL[s]). */
   CORS_ORIGINS: list('CORS_ORIGINS', [
+    'http://localhost:4000',
     'http://localhost:5173',
     'http://localhost:4173',
   ]),

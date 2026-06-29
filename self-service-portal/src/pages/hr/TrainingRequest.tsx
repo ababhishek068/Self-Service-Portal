@@ -1,38 +1,46 @@
-import { createTrainingRequest, listTrainingRequests } from '@/api/endpoints/training'
+import { createModuleRequest } from '@/api/endpoints/requestEndpoint'
+import { listTrainingRequests } from '@/api/endpoints/training'
 import { RequestFormPage } from '@/components/shared/RequestFormPage'
-import { trainingNeedsSchema, type TrainingNeedsForm } from '@/schemas/requestSchemas'
+import { trainingRequestSchema } from '@/schemas/requestSchemas'
+import { useLookupOptions } from '@/hooks/useLookupOptions'
 
 export function TrainingRequest() {
+  const courses = useLookupOptions('training-courses')
+  const module = { module: 'training', entity: 'selfServiceTrainingRequests' } as const
+
   return (
     <RequestFormPage
       title="Training Requisitions"
-      description="Create training needs cards with period, provider, cost, and justification."
-      schema={trainingNeedsSchema}
+      description="Select a Business Central training course and add your comments."
+      schema={trainingRequestSchema}
       queryKey={['hr', 'training-request']}
       listRequests={listTrainingRequests}
-      createRequest={(values) => createTrainingRequest(values as TrainingNeedsForm)}
-      moduleConfig={{ module: 'training', entity: 'selfServiceTrainingRequests' }}
-      newButtonLabel="New Training Needs"
+      createRequest={(values) =>
+        createModuleRequest(module, {
+          ...values,
+          title: String(values.trainingNeed || 'Training Request'),
+        })
+      }
+      moduleConfig={module}
+      newButtonLabel="New Training Request"
       defaultValues={{
-        trainingTitle: '',
-        trainingPeriod: '',
-        provider: '',
-        estimatedCost: 0,
-        justification: '',
-        groupName: '',
+        trainingNeed: '',
+        comments: '',
       }}
       fields={[
-        { name: 'trainingTitle', label: 'Training title', type: 'text' },
-        { name: 'trainingPeriod', label: 'Training period', type: 'text', placeholder: 'e.g. 5–10 Mar 2026' },
-        { name: 'provider', label: 'Provider', type: 'text' },
-        { name: 'estimatedCost', label: 'Estimated cost (optional)', type: 'number' },
-        { name: 'groupName', label: 'Training group (optional)', type: 'text' },
-        { name: 'justification', label: 'Justification', type: 'textarea' },
+        {
+          name: 'trainingNeed',
+          label: 'Training Course',
+          type: 'select',
+          options: courses.options,
+          valuePaths: ['TrainingCourseCode', 'Training_Course_Code', 'TrainingNeed'],
+          placeholder: courses.isLoading ? 'Loading Business Central courses…' : courses.isError ? 'Could not load training courses' : 'Select training course',
+        },
+        { name: 'comments', label: 'Comments', type: 'textarea', valuePaths: ['Purpose', 'Comments'] },
       ]}
       businessRules={[
-        'Training period and provider are mandatory; estimated cost is optional.',
-        'Submitted cards route to HR for approval.',
-        'Training groups can be used for batch nominations.',
+        'The request is created as a draft first.',
+        'Review the saved request, then send it for approval.',
       ]}
     />
   )

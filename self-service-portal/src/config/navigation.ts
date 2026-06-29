@@ -1,10 +1,4 @@
 import type { LucideIcon } from 'lucide-react'
-import {
-  erpConnectorRoles,
-  gatePassReportRoles,
-  leaveBalanceReportRoles,
-  storeUsageReportRoles,
-} from '@/config/roleAccess'
 import type { PortalRole } from '@/config/roles'
 import {
   BadgeCheck,
@@ -15,7 +9,6 @@ import {
   CircleX,
   ClipboardCheck,
   ClipboardCopy,
-  Clock3,
   CloudDownload,
   Crown,
   DoorOpen,
@@ -25,7 +18,6 @@ import {
   Home,
   KeyRound,
   Landmark,
-  Link2,
   PackageCheck,
   Plane,
   ReceiptText,
@@ -35,7 +27,6 @@ import {
   UserRound,
   UsersRound,
   Wallet,
-  Wrench,
 } from 'lucide-react'
 
 export interface NavItem {
@@ -70,9 +61,12 @@ export const navigationMenu: NavItem[] = [
       { label: 'Training Request', path: '/hr/training-request', icon: FileText },
       { label: 'Payslip', path: '/hr/payslip', icon: Wallet },
       { label: 'Salary Advance', path: '/hr/salary-advance', icon: Banknote },
-      { label: 'Document Requisition', path: '/hr/document-requisition', icon: FileText },
-      { label: 'Overtime Request', path: '/hr/overtime-request', icon: Clock3 },
-      { label: 'Travel Request', path: '/hr/travel-request', icon: Plane },
+      {
+        label: 'Document Requisition',
+        path: '/hr/document-requisition',
+        icon: FileText,
+        underConstruction: true,
+      },
     ],
   },
   {
@@ -90,15 +84,27 @@ export const navigationMenu: NavItem[] = [
     label: 'Facilities',
     icon: Building2,
     children: [
+      {
+        label: 'Gate Pass',
+        icon: DoorOpen,
+        children: [
+          { label: 'Asset Transfer', path: '/facility/gate-pass/asset-transfer', icon: PackageCheck },
+          { label: 'Store Requisition', path: '/facility/gate-pass/store-requisition', icon: Store },
+          { label: 'Transfer Orders', path: '/facility/gate-pass/transfer-orders', icon: PackageCheck },
+        ],
+      },
       { label: 'Purchase Requisition', path: '/facility/purchase-requisition', icon: ShoppingCart },
       { label: 'Store Requisition', path: '/facility/store-requisition', icon: Store },
       { label: 'Transport Requisition', path: '/facility/transport-request', icon: Car },
       { label: 'Fuel Requisition', path: '/facility/fuel-request', icon: Fuel },
+      { label: 'Maintenance Request', path: '/facility/maintenance-request', icon: Building2 },
       { label: 'Work Tickets', path: '/facility/work-tickets', icon: Ticket },
-      { label: 'Maintenance Request', path: '/facility/maintenance-request', icon: Wrench },
       { label: 'Transfer Orders', path: '/facility/transfer-order', icon: PackageCheck },
-      { label: 'Gate Pass', path: '/facility/gate-pass', icon: DoorOpen },
-      { label: 'Vehicle Transfer', path: '/facility/vehicle-transfer', icon: Car },
+      {
+        label: 'Vehicle Transfer',
+        path: '/facility/vehicle-transfer',
+        icon: Car,
+      },
     ],
   },
   {
@@ -126,20 +132,10 @@ export const navigationMenu: NavItem[] = [
     ],
   },
   {
-    label: 'Reports',
-    icon: BarChart3,
-    children: [
-      { label: 'Leave Balance Report', path: '/reports/leave-balance', icon: BarChart3, roles: leaveBalanceReportRoles },
-      { label: 'Store Usage Report', path: '/reports/store-usage', icon: Store, roles: storeUsageReportRoles },
-    ],
-  },
-  {
     label: 'HR Downloads',
     icon: CloudDownload,
     children: [
       { label: 'Document Downloads', path: '/downloads/documents', icon: FileText },
-      { label: 'Gate Pass Log', path: '/reports/gate-pass-log', icon: DoorOpen, roles: gatePassReportRoles },
-      { label: 'ERP Connector', path: '/reports/erp-connector', icon: Link2, roles: erpConnectorRoles },
     ],
   },
   { label: 'Profile', path: '/profile', icon: UserRound },

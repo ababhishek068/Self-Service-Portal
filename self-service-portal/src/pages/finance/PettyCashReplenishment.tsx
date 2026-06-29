@@ -1,55 +1,60 @@
 import { formatISO } from 'date-fns'
-import { createPettyCashRequest, listPettyCashRequests } from '@/api/endpoints/pettyCash'
+import {
+  createPettyCashReplenishment,
+  listPettyCashReplenishments,
+} from '@/api/endpoints/pettyCash'
 import { RequestFormPage } from '@/components/shared/RequestFormPage'
-import { departments } from '@/data/departments'
 import { useEmployeeDefaults } from '@/hooks/useEmployeeDefaults'
-import { pettyCashSchema, type PettyCashForm } from '@/schemas/requestSchemas'
-import type { PortalRequest } from '@/types/erp.types'
+import {
+  pettyCashReplenishmentSchema,
+  type PettyCashReplenishmentForm,
+} from '@/schemas/requestSchemas'
+import { useLookupOptions } from '@/hooks/useLookupOptions'
 
 const today = formatISO(new Date(), { representation: 'date' })
-const departmentOptions = departments.map((department) => ({ label: department.name, value: department.code }))
-
-async function listReplenishmentRequests(): Promise<PortalRequest[]> {
-  const rows = await listPettyCashRequests()
-  return rows.filter((row) => (row.payload as { activity?: string })?.activity === 'Petty Cash Replenishment')
-}
-
 export function PettyCashReplenishment() {
-  const { departmentCode, responsibleCenter } = useEmployeeDefaults()
+  const { departmentCode } = useEmployeeDefaults()
+  const sectors = useLookupOptions('sectors')
+  const divisions = useLookupOptions('divisions')
+  const departments = useLookupOptions('departments')
+  const bankAccounts = useLookupOptions('bank-accounts')
 
   return (
     <RequestFormPage
       title="Petty Cash Replenishment"
       description="Request replenishment of the departmental petty cash float."
-      schema={pettyCashSchema}
+      schema={pettyCashReplenishmentSchema}
       queryKey={['finance', 'petty-cash-replenishment']}
-      listRequests={listReplenishmentRequests}
-      createRequest={(values) =>
-        createPettyCashRequest({ ...(values as PettyCashForm), activity: 'Petty Cash Replenishment' })
-      }
-      moduleConfig={{ module: 'pettyCash', entity: 'selfServicePettyCashRequests' }}
+      listRequests={listPettyCashReplenishments}
+      createRequest={(values) => createPettyCashReplenishment(values as PettyCashReplenishmentForm)}
+      moduleConfig={{ module: 'pettyCashReplenishment', entity: 'selfServicePettyCashReplenishments' }}
       defaultValues={{
-        activity: 'Petty Cash Replenishment',
-        departmentCode,
-        requestDate: today,
-        amount: 0,
-        limitAmount: 120000,
-        costCenter: responsibleCenter,
-        purpose: '',
+        dateCreated: today,
+        sector: '',
+        division: '',
+        department: departmentCode,
+        payingAccount: '',
+        sourceAmount: 0,
+        receivingAccount: '',
+        receivingAmount: 0,
+        remarks: '',
         attachments: [],
       }}
       fields={[
-        { name: 'departmentCode', label: 'Department', type: 'select', options: departmentOptions },
-        { name: 'requestDate', label: 'Request date', type: 'date' },
-        { name: 'amount', label: 'Replenishment amount', type: 'number' },
-        { name: 'limitAmount', label: 'Department limit', type: 'number', readOnly: true },
-        { name: 'costCenter', label: 'Cost center', type: 'text' },
-        { name: 'purpose', label: 'Purpose', type: 'textarea' },
+        { name: 'dateCreated', label: 'Date created', type: 'date', valuePaths: ['DateCreated', 'Date_Created'] },
+        { name: 'sector', label: 'Sector', type: 'select', options: sectors.options, valuePaths: ['Sector'], placeholder: sectors.isLoading ? 'Loading sectors…' : sectors.isError ? 'Could not load sectors' : 'Select sector' },
+        { name: 'division', label: 'Division / Branch', type: 'select', options: divisions.options, valuePaths: ['Division'], placeholder: divisions.isLoading ? 'Loading divisions…' : divisions.isError ? 'Could not load divisions' : 'Select division' },
+        { name: 'department', label: 'Department / District', type: 'select', options: departments.options, valuePaths: ['Department'], placeholder: departments.isLoading ? 'Loading departments…' : departments.isError ? 'Could not load departments' : 'Select department' },
+        { name: 'payingAccount', label: 'Paying account', type: 'select', options: bankAccounts.options, valuePaths: ['PayingAccount', 'Paying_Account'], placeholder: bankAccounts.isLoading ? 'Loading accounts…' : bankAccounts.isError ? 'Could not load accounts' : 'Select paying account' },
+        { name: 'sourceAmount', label: 'Source amount', type: 'number', valuePaths: ['SourceAmount', 'Source_Amount'] },
+        { name: 'receivingAccount', label: 'Receiving account', type: 'select', options: bankAccounts.options, valuePaths: ['ReceivingAccount', 'Receiving_Account'], placeholder: bankAccounts.isLoading ? 'Loading accounts…' : bankAccounts.isError ? 'Could not load accounts' : 'Select receiving account' },
+        { name: 'receivingAmount', label: 'Receiving amount', type: 'number', valuePaths: ['ReceivingAmount', 'Receiving_Amount'] },
+        { name: 'remarks', label: 'Remarks', type: 'textarea', valuePaths: ['Remarks'] },
         { name: 'attachments', label: 'Supporting documents', type: 'files' },
       ]}
       businessRules={[
-        'Replenishment amount cannot exceed the departmental petty cash limit.',
-        'Request date must equal the ERP working date.',
+        'This follows the ESS Inter-Bank Transfer workflow.',
+        'Source and receiving account amounts are submitted to Business Central.',
         'Approval workflow is controlled by ERP.',
       ]}
     />

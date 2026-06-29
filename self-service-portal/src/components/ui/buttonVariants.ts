@@ -13,6 +13,7 @@ export const buttonVariants = cva(
         ghost: 'text-slate-700 hover:bg-slate-100',
         success: 'bg-[var(--portal-green)] text-white hover:opacity-90',
         action: 'bg-[var(--portal-blue-action)] text-white hover:opacity-90',
+        gradient: 'portal-btn-gradient portal-btn-shine shadow-md',
       },
       size: {
         default: 'h-10 px-4 py-2',
